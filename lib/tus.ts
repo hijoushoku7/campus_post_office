@@ -1,0 +1,99 @@
+import type { IncomingMessage } from "node:http";
+import { Server, type Upload } from "@tus/server";
+import { FileStore } from "@tus/file-store";
+import { getToken } from "next-auth/jwt";
+import { config, expiryFromNow } from "./config";
+import { ensureUploadDir, hasFreeSpaceFor } from "./storage";
+import { prisma } from "./db";
+import { enqueueScan } from "./queue";
+import { writeAudit } from "./audit";
+
+const TUS_PATH = "/api/upload";
+const isHttps = config.publicBaseUrl.startsWith("https");
+
+class TusError extends Error {
+  status_code: number;
+  body: string;
+  constructor(status: number, message: string) {
+    super(message);
+    this.status_code = status;
+    this.body = message;
+  }
+}
+
+async function getUserId(req: IncomingMessage): Promise<string | null> {
+  const token = await getToken({
+    req: req as never,
+    secret: process.env.AUTH_SECRET,
+    secureCookie: isHttps,
+  });
+  return (token?.sub as string) ?? null;
+}
+
+/** tus サーバを生成（カスタムサーバ server.ts からマウント） */
+export async function createTusServer(): Promise<Server> {
+  await ensureUploadDir();
+
+  const server = new Server({
+    path: TUS_PATH,
+    datastore: new FileStore({ directory: config.uploadDir }),
+    maxSize: config.maxFileSize,
+    respectForwardedHeaders: true,
+
+    async onUploadCreate(req, upload: Upload) {
+      const userId = await getUserId(req);
+      if (!userId) throw new TusError(401, "ログインが必要です");
+
+      const size = upload.size ?? 0;
+      if (size <= 0) throw new TusError(400, "ファイルサイズが不明です");
+      if (size > config.maxFileSize) {
+        throw new TusError(413, "ファイルサイズが上限を超えています");
+      }
+      if (!(await hasFreeSpaceFor(size))) {
+        throw new TusError(507, "サーバの空き容量が不足しています");
+      }
+
+      return { metadata: { ...upload.metadata, ownerId: userId } };
+    },
+
+    async onUploadFinish(_req, upload: Upload) {
+      const ownerId = upload.metadata?.ownerId;
+      if (!ownerId) {
+        // owner不明: 不正なアップロードとして実体は FileStore に残るが File は作らない
+        console.error("[tus] upload finished without ownerId", upload.id);
+        return {};
+      }
+
+      const originalName = upload.metadata?.filename || upload.id;
+      const mimeType = upload.metadata?.filetype || null;
+
+      const file = await prisma.file.create({
+        data: {
+          ownerId,
+          originalName,
+          mimeType,
+          size: BigInt(upload.size ?? 0),
+          storagePath: upload.id, // FileStore は upload.id 名で保存
+          status: "SCANNING",
+          expiresAt: expiryFromNow(),
+        },
+      });
+
+      await enqueueScan(file.id);
+      await writeAudit({
+        userId: ownerId,
+        action: "FILE_UPLOADED",
+        targetType: "file",
+        targetId: file.id,
+        result: "ok",
+        detail: { originalName, size: String(upload.size ?? 0) },
+      });
+
+      return {};
+    },
+  });
+
+  return server;
+}
+
+export { TUS_PATH };

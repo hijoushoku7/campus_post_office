@@ -1,0 +1,121 @@
+// Prisma schema — セキュアファイル共有アプリ
+// 認証は Auth.js v5 (Credentials + JWTセッション) のため Session テーブルは持たない。
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  MEMBER
+}
+
+enum FileStatus {
+  UPLOADING
+  SCANNING
+  READY
+  INFECTED
+  EXPIRED
+  DELETED
+}
+
+enum AuditAction {
+  LOGIN_SUCCESS
+  LOGIN_FAILED
+  LOGOUT
+  USER_INVITED
+  USER_CREATED
+  USER_UPDATED
+  FILE_UPLOADED
+  FILE_DOWNLOADED
+  FILE_DELETED
+  FILE_EXPIRED
+  FILE_INFECTED
+  SHARE_CREATED
+  SHARE_REVOKED
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  role         Role     @default(MEMBER)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  files       File[]
+  invitations Invitation[] @relation("InvitedBy")
+}
+
+model Invitation {
+  id          String    @id @default(cuid())
+  email       String? // 任意。指定すれば固定
+  token       String    @unique // 推測困難（32byte base64url）
+  role        Role      @default(MEMBER)
+  expiresAt   DateTime
+  acceptedAt  DateTime?
+  createdById String
+  createdBy   User      @relation("InvitedBy", fields: [createdById], references: [id])
+  createdAt   DateTime  @default(now())
+
+  @@index([token])
+}
+
+model File {
+  id           String     @id @default(cuid())
+  ownerId      String
+  owner        User       @relation(fields: [ownerId], references: [id])
+  originalName String
+  size         BigInt // 10GB > 2^31 のため BigInt
+  mimeType     String?
+  storagePath  String     @unique // ランダム名で保存。原名は originalName
+  checksum     String? // 任意（SHA-256）
+  status       FileStatus @default(UPLOADING)
+  expiresAt    DateTime
+  createdAt    DateTime   @default(now())
+
+  shares ShareLink[]
+
+  @@index([ownerId])
+  @@index([expiresAt])
+  @@index([status])
+}
+
+model ShareLink {
+  id            String    @id @default(cuid())
+  fileId        String
+  file          File      @relation(fields: [fileId], references: [id], onDelete: Cascade)
+  token         String    @unique
+  expiresAt     DateTime
+  revokedAt     DateTime?
+  maxDownloads  Int?
+  downloadCount Int       @default(0)
+  createdById   String
+  createdAt     DateTime  @default(now())
+
+  @@index([fileId])
+  @@index([token])
+}
+
+model AuditLog {
+  id         String      @id @default(cuid())
+  userId     String?
+  action     AuditAction
+  targetType String? // "file" | "user" | "share"
+  targetId   String?
+  ip         String?
+  userAgent  String?
+  result     String? // "ok" | "denied" | "error"
+  detail     Json?
+  createdAt  DateTime    @default(now())
+
+  @@index([userId])
+  @@index([createdAt])
+  @@index([action])
+}

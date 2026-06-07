@@ -1,0 +1,92 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+@layer base {
+  body {
+    @apply bg-paper text-ink font-body antialiased;
+    /* クラフト紙の粒状テクスチャ + ほのかな縦の用紙繊維 */
+    background-image:
+      radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.5), transparent 60%),
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.045'/%3E%3C/svg%3E");
+    background-attachment: fixed;
+  }
+
+  ::selection {
+    @apply bg-postal text-paper;
+  }
+
+  h1,
+  h2,
+  h3 {
+    @apply font-display;
+  }
+}
+
+@layer components {
+  /* エアメールの赤青ストライプ（署名要素） */
+  .airmail-edge {
+    background-image: repeating-linear-gradient(
+      -45deg,
+      var(--airmail-a, #b22222) 0,
+      var(--airmail-a, #b22222) 11px,
+      transparent 11px,
+      transparent 22px,
+      var(--airmail-b, #13427a) 22px,
+      var(--airmail-b, #13427a) 33px,
+      transparent 33px,
+      transparent 44px
+    );
+  }
+
+  /* 切手の目打ち（ミシン目）枠 */
+  .perforated {
+    --p: 7px;
+    background:
+      radial-gradient(circle at center, transparent calc(var(--p) - 4px), var(--paper) var(--p)) 0 0 /
+      var(--p) var(--p);
+    -webkit-mask:
+      radial-gradient(circle at center, transparent calc(var(--p) - 4px), #000 var(--p)) 0 0 /
+      var(--p) var(--p);
+  }
+
+  /* 消印（ポストマーク）のスタンプ */
+  .postmark {
+    @apply font-mono uppercase tracking-[0.2em] text-postal;
+    border: 2px solid currentColor;
+    border-radius: 9999px;
+  }
+
+  /* デスク上のカード（紙片） */
+  .card-paper {
+    @apply rounded-sm border border-line bg-[#faf6ec] shadow-desk;
+  }
+
+  /* ラベルのキャプション（伝票風） */
+  .field-label {
+    @apply font-mono text-[11px] uppercase tracking-[0.18em] text-muted;
+  }
+
+  /* 罫線入力（伝票の記入欄） */
+  .ledger-input {
+    @apply w-full border-0 border-b border-line bg-transparent px-1 py-2 font-mono text-sm
+           text-ink outline-none transition-colors focus:border-postal;
+  }
+
+  /* プライマリボタン = 封蝋（赤） */
+  .btn-wax {
+    @apply inline-flex items-center justify-center gap-2 rounded-sm bg-postal px-5 py-2.5
+           font-mono text-xs uppercase tracking-[0.15em] text-paper transition
+           hover:bg-postal-deep disabled:opacity-50;
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-1 rounded-sm border border-line
+           bg-transparent px-3 py-1.5 font-mono text-[11px] uppercase tracking-[0.12em]
+           text-ink transition hover:border-ink hover:bg-paper-deep;
+  }
+}
