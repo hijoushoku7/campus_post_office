@@ -11,6 +11,16 @@ import { writeAudit } from "./audit";
 const TUS_PATH = "/api/upload";
 const isHttps = config.publicBaseUrl.startsWith("https");
 
+/**
+ * クライアント指定の保管期限（日数）を検証してクランプする。
+ * メタデータは信用できないため、サーバ側で 1..maxExpiryDays に丸める。
+ */
+function resolveExpiryDays(raw: string | null | undefined): number {
+  const n = raw ? Number.parseInt(raw, 10) : NaN;
+  if (!Number.isFinite(n) || n < 1) return config.defaultExpiryDays;
+  return Math.min(n, config.maxExpiryDays);
+}
+
 class TusError extends Error {
   status_code: number;
   body: string;
@@ -66,6 +76,7 @@ export async function createTusServer(): Promise<Server> {
 
       const originalName = upload.metadata?.filename || upload.id;
       const mimeType = upload.metadata?.filetype || null;
+      const expiryDays = resolveExpiryDays(upload.metadata?.expiryDays);
 
       const file = await prisma.file.create({
         data: {
@@ -75,7 +86,7 @@ export async function createTusServer(): Promise<Server> {
           size: BigInt(upload.size ?? 0),
           storagePath: upload.id, // FileStore は upload.id 名で保存
           status: "SCANNING",
-          expiresAt: expiryFromNow(),
+          expiresAt: expiryFromNow(expiryDays),
         },
       });
 

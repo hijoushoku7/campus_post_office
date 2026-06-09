@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { auth, signOut } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { formatBytes, remainingTime } from "@/lib/format";
+import { config } from "@/lib/config";
 import { Uploader } from "@/components/Uploader";
 import { FileRow, type FileItem } from "@/components/FileRow";
 
@@ -77,7 +78,10 @@ export default async function FilesPage() {
             <span className="postmark px-2 py-0.5 text-[10px]">Up</span>
             <h2 className="font-display text-xl">アップロード</h2>
           </div>
-          <Uploader />
+          <Uploader
+            defaultExpiryDays={config.defaultExpiryDays}
+            maxExpiryDays={config.maxExpiryDays}
+          />
         </section>
 
         {/* ファイル一覧 */}

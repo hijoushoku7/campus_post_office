@@ -14,11 +14,30 @@ interface UploadItem {
   error?: string;
 }
 
-export function Uploader() {
+// 保管期限の選択肢（日数）。maxExpiryDays を超えるものは除外して表示する。
+const EXPIRY_OPTIONS = [1, 3, 7, 14, 30];
+
+export function Uploader({
+  defaultExpiryDays = 7,
+  maxExpiryDays = 30,
+}: {
+  defaultExpiryDays?: number;
+  maxExpiryDays?: number;
+}) {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const [items, setItems] = useState<UploadItem[]>([]);
   const [dragging, setDragging] = useState(false);
+  const [expiryDays, setExpiryDays] = useState(defaultExpiryDays);
+
+  // 選択肢は上限以内に絞り、既定値が無ければ補う
+  const options = Array.from(
+    new Set([...EXPIRY_OPTIONS.filter((d) => d <= maxExpiryDays), defaultExpiryDays]),
+  ).sort((a, b) => a - b);
+
+  // 最新の選択値を常に参照できるよう ref に同期（startUpload を作り直さない）
+  const expiryRef = useRef(expiryDays);
+  expiryRef.current = expiryDays;
 
   const startUpload = useCallback(
     (file: File) => {
@@ -35,6 +54,7 @@ export function Uploader() {
         metadata: {
           filename: file.name,
           filetype: file.type || "application/octet-stream",
+          expiryDays: String(expiryRef.current),
         },
         onError(error) {
           setItems((prev) =>
@@ -118,6 +138,28 @@ export function Uploader() {
             className="hidden"
             onChange={onSelect}
           />
+        </div>
+
+        {/* 保管期限の指定（アップロード時に適用） */}
+        <div
+          className="mt-4 flex items-center justify-between gap-3"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <label htmlFor="expiry" className="field-label">
+            保管期限
+          </label>
+          <select
+            id="expiry"
+            value={expiryDays}
+            onChange={(e) => setExpiryDays(Number(e.target.value))}
+            className="ledger-input w-auto cursor-pointer border border-line px-2 py-1.5"
+          >
+            {options.map((d) => (
+              <option key={d} value={d}>
+                {d}日後に削除
+              </option>
+            ))}
+          </select>
         </div>
 
         {items.length > 0 ? (
