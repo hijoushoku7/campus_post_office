@@ -12,6 +12,7 @@ export const config = {
   uploadDir: process.env.UPLOAD_DIR ?? "/data/uploads",
   maxFileSize: int("MAX_FILE_SIZE", 10 * 1024 * 1024 * 1024), // 10GB
   defaultExpiryDays: int("DEFAULT_EXPIRY_DAYS", 7),
+  maxExpiryDays: int("MAX_EXPIRY_DAYS", 30), // ユーザーが指定できる保管期限の上限（日）
   inviteExpiryHours: int("INVITE_EXPIRY_HOURS", 48), // 招待リンクの有効期限（時間）
   uploadChunkSize: int("UPLOAD_CHUNK_SIZE", 50 * 1024 * 1024), // 50MB
   minFreeSpace: int("MIN_FREE_SPACE", 20 * 1024 * 1024 * 1024), // 20GB
