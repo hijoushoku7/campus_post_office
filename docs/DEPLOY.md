@@ -53,7 +53,7 @@ cd campus_post_office
 2. **Cloudflared** を選択し、トンネル名を入力（例: `campus-post-office`）
 3. 表示される **トークン**（`eyJ...` の長い文字列）を控える → `.env` の `TUNNEL_TOKEN` に使用
 4. **Public Hostname** を追加:
-   - Subdomain/Domain: 公開したいURL（例: `files.example.com`）
+   - Subdomain/Domain: 公開したいURL（例: `sharefile.hijoushoku.com`）
    - Type: **HTTP**
    - URL: **`app:3000`** ← compose 内のサービス名で指定
 5. 保存

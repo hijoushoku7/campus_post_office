@@ -40,7 +40,7 @@ export async function createTusServer(): Promise<Server> {
     maxSize: config.maxFileSize,
     respectForwardedHeaders: true,
 
-    async onUploadCreate(req, upload: Upload) {
+    async onUploadCreate(req, res, upload: Upload) {
       const userId = await getUserId(req);
       if (!userId) throw new TusError(401, "ログインが必要です");
 
@@ -53,15 +53,15 @@ export async function createTusServer(): Promise<Server> {
         throw new TusError(507, "サーバの空き容量が不足しています");
       }
 
-      return { metadata: { ...upload.metadata, ownerId: userId } };
+      return { res, metadata: { ...upload.metadata, ownerId: userId } };
     },
 
-    async onUploadFinish(_req, upload: Upload) {
+    async onUploadFinish(_req, res, upload: Upload) {
       const ownerId = upload.metadata?.ownerId;
       if (!ownerId) {
         // owner不明: 不正なアップロードとして実体は FileStore に残るが File は作らない
         console.error("[tus] upload finished without ownerId", upload.id);
-        return {};
+        return { res };
       }
 
       const originalName = upload.metadata?.filename || upload.id;
@@ -89,7 +89,7 @@ export async function createTusServer(): Promise<Server> {
         detail: { originalName, size: String(upload.size ?? 0) },
       });
 
-      return {};
+      return { res };
     },
   });
 
