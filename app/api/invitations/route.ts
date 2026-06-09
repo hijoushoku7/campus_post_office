@@ -24,6 +24,16 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "invalid body" }, { status: 400 });
   }
 
+  // JWT は署名が有効でも、ユーザがDBから消えている（DB再作成後の古いCookie等）
+  // 場合がある。Invitation 作成時の外部キー制約違反を避けるため実在を確認する。
+  const creator = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { id: true },
+  });
+  if (!creator) {
+    return NextResponse.json({ error: "session invalid" }, { status: 401 });
+  }
+
   const expiresAt = new Date(Date.now() + config.inviteExpiryHours * 60 * 60 * 1000);
   const invite = await prisma.invitation.create({
     data: {
