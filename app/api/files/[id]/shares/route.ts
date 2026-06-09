@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import type { Session } from "next-auth";
 import { z } from "zod";
 import { auth, isAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/db";
@@ -11,10 +12,14 @@ const createSchema = z.object({
   maxDownloads: z.number().int().positive().optional(),
 });
 
-async function loadOwnedFile(id: string, session: Awaited<ReturnType<typeof auth>>) {
+type LoadResult =
+  | { file: NonNullable<Awaited<ReturnType<typeof prisma.file.findUnique>>>; error?: undefined }
+  | { file?: undefined; error: NextResponse };
+
+async function loadOwnedFile(id: string, session: Session): Promise<LoadResult> {
   const file = await prisma.file.findUnique({ where: { id } });
   if (!file) return { error: NextResponse.json({ error: "not found" }, { status: 404 }) };
-  if (file.ownerId !== session!.user.id && !isAdmin(session)) {
+  if (file.ownerId !== session.user.id && !isAdmin(session)) {
     return { error: NextResponse.json({ error: "forbidden" }, { status: 403 }) };
   }
   return { file };
