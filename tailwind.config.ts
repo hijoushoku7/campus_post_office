@@ -34,10 +34,16 @@ export default {
           "0%": { opacity: "0", transform: "translateY(10px)" },
           "100%": { opacity: "1", transform: "translateY(0)" },
         },
+        // 削除時に右へ流して畳む（消印を押して投函するイメージ）
+        "fade-collapse": {
+          "0%": { opacity: "1", transform: "translateX(0)", maxHeight: "200px" },
+          "100%": { opacity: "0", transform: "translateX(16px)", maxHeight: "0px" },
+        },
       },
       animation: {
         "stamp-in": "stamp-in 0.5s cubic-bezier(0.2,0.8,0.2,1) both",
         "rise-in": "rise-in 0.6s cubic-bezier(0.2,0.8,0.2,1) both",
+        "fade-collapse": "fade-collapse 0.35s cubic-bezier(0.4,0,1,1) forwards",
       },
     },
   },

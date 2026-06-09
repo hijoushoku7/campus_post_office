@@ -12,6 +12,7 @@ export default auth((req) => {
   const isPublic =
     pathname.startsWith("/login") ||
     pathname.startsWith("/invite") ||
+    pathname.startsWith("/api/register") ||
     pathname.startsWith("/api/auth");
 
   if (!isLoggedIn && !isPublic) {
