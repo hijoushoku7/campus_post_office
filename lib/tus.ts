@@ -54,6 +54,16 @@ export async function createTusServer(): Promise<Server> {
       const userId = await getUserId(req);
       if (!userId) throw new TusError(401, "ログインが必要です");
 
+      // JWT は署名が有効でも、ユーザがDBから消えている（DB再作成後の古いCookie等）
+      // 場合がある。File 作成時の外部キー制約違反を避けるため、ここで実在を確認する。
+      const owner = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { id: true, isActive: true },
+      });
+      if (!owner || !owner.isActive) {
+        throw new TusError(401, "セッションが無効です。再度ログインしてください");
+      }
+
       const size = upload.size ?? 0;
       if (size <= 0) throw new TusError(400, "ファイルサイズが不明です");
       if (size > config.maxFileSize) {
@@ -71,6 +81,17 @@ export async function createTusServer(): Promise<Server> {
       if (!ownerId) {
         // owner不明: 不正なアップロードとして実体は FileStore に残るが File は作らない
         console.error("[tus] upload finished without ownerId", upload.id);
+        return { res };
+      }
+
+      // アップロード完了は時間がかかるため、その間にユーザが削除/無効化される
+      // 可能性がある。外部キー制約違反でサーバを落とさないよう実在を再確認する。
+      const owner = await prisma.user.findUnique({
+        where: { id: ownerId },
+        select: { id: true },
+      });
+      if (!owner) {
+        console.error("[tus] upload finished for missing owner", ownerId, upload.id);
         return { res };
       }
 
