@@ -64,6 +64,10 @@ export default async function SharePage({
               </p>
             </>
           )}
+
+          <a href="/files" className="btn-ghost mt-6 w-full py-2.5">
+            ホームへ戻る
+          </a>
         </div>
         <div className="airmail-edge h-3 rounded-b-sm opacity-70" />
       </div>

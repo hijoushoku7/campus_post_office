@@ -3,6 +3,7 @@ import { auth, isAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { getFreeSpace } from "@/lib/storage";
 import { formatBytes, remainingTime } from "@/lib/format";
+import { AdminInvite } from "@/components/AdminInvite";
 
 export default async function AdminPage() {
   const session = await auth();
@@ -69,6 +70,15 @@ export default async function AdminPage() {
             </p>
           </div>
         ))}
+      </section>
+
+      {/* ユーザー招待 */}
+      <section className="mb-10">
+        <div className="mb-3 flex items-center gap-2">
+          <span className="postmark px-2 py-0.5 text-[10px]">User</span>
+          <h2 className="font-display text-xl">ユーザーを追加</h2>
+        </div>
+        <AdminInvite />
       </section>
 
       <div className="grid gap-10 lg:grid-cols-2">
