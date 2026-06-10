@@ -131,7 +131,7 @@ docker compose logs -f clamav   # "Self checking every ..." 等が出ればDB準
 docker compose run --rm app npx prisma db push
 
 # 初期管理者アカウントを作成（.env の SEED_ADMIN_* を使用）
-docker compose run --rm app npm run seed
+   docker compose run --rm app npm run seed
 ```
 
 > 本番でスキーマを継続的に管理したい場合は `prisma migrate`（マイグレーション）への移行を推奨します。

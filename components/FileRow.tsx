@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { FILES_CHANGED_EVENT } from "./FileList";
 
 export interface FileItem {
   id: string;

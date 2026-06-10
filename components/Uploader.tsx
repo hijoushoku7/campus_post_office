@@ -2,7 +2,7 @@
 
 import { useCallback, useRef, useState } from "react";
 import * as tus from "tus-js-client";
-import { useRouter } from "next/navigation";
+import { FILES_CHANGED_EVENT } from "./FileList";
 
 // Cloudflare の 1リクエスト 100MB 制約に収まるよう 50MB チャンクで送信
 const CHUNK_SIZE = 50 * 1024 * 1024;
@@ -24,7 +24,6 @@ export function Uploader({
   defaultExpiryDays?: number;
   maxExpiryDays?: number;
 }) {
-  const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const [items, setItems] = useState<UploadItem[]>([]);
   const [dragging, setDragging] = useState(false);
@@ -75,7 +74,8 @@ export function Uploader({
               i === index ? { ...it, progress: 100, status: "done" } : it,
             ),
           );
-          router.refresh();
+          // 一覧をすぐ更新（チェック中として表示 → 完了後 利用可能 に変わる）
+          window.dispatchEvent(new Event(FILES_CHANGED_EVENT));
         },
       });
 
@@ -85,7 +85,7 @@ export function Uploader({
         upload.start();
       });
     },
-    [router],
+    [],
   );
 
   const onSelect = useCallback(
