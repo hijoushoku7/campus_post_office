@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { auth, signOut } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { visibleFileWhere } from "@/lib/file-query";
 import { formatBytes, remainingTime } from "@/lib/format";
 import { config } from "@/lib/config";
 import { Uploader } from "@/components/Uploader";
@@ -12,11 +14,9 @@ export default async function FilesPage() {
   if (!session?.user) redirect("/login");
 
   const files = await prisma.file.findMany({
-    where: {
-      ownerId: session.user.id,
-      status: { notIn: ["DELETED", "EXPIRED"] },
-    },
+    where: visibleFileWhere(session.user.id),
     orderBy: { createdAt: "desc" },
+    take: 1000, // 安全弁: 無制限取得を防ぐ（UIページネーションは今後の課題）
     select: {
       id: true,
       originalName: true,
@@ -55,9 +55,9 @@ export default async function FilesPage() {
             <p className="font-mono text-sm text-ink">{session.user.email}</p>
           </div>
           {session.user.role === "ADMIN" ? (
-            <a href="/admin" className="btn-ghost">
+            <Link href="/admin" className="btn-ghost">
               管理
-            </a>
+            </Link>
           ) : null}
           <form
             action={async () => {

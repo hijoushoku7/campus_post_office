@@ -19,13 +19,13 @@ const STATUS: Record<string, { text: string; cls: string }> = {
 };
 
 export function FileRow({ file }: { file: FileItem }) {
-  const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [removing, setRemoving] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [shareError, setShareError] = useState<string | null>(null);
   const badge = STATUS[file.status] ?? STATUS.UPLOADING;
 
   async function copyLink(url: string) {
@@ -38,13 +38,17 @@ export function FileRow({ file }: { file: FileItem }) {
 
   async function createShare() {
     setBusy(true);
+    setShareError(null);
     const res = await fetch(`/api/files/${file.id}/shares`, { method: "POST" });
     setBusy(false);
-    if (res.ok) {
-      const data = await res.json();
-      setShareUrl(data.share.url);
-      await copyLink(data.share.url);
+    if (!res.ok) {
+      // 作成に失敗したらエラーを提示（再試行で消える）
+      setShareError("共有リンクの作成に失敗しました。時間をおいて再度お試しください。");
+      return;
     }
+    const data = await res.json();
+    setShareUrl(data.share.url);
+    await copyLink(data.share.url);
   }
 
   async function remove() {
@@ -58,8 +62,9 @@ export function FileRow({ file }: { file: FileItem }) {
       return;
     }
     // 行を畳むアニメーションを見せてから一覧を更新
+    // (FileList は initialItems を state に取り込むため router.refresh() では反映されない)
     setRemoving(true);
-    setTimeout(() => router.refresh(), 320);
+    setTimeout(() => window.dispatchEvent(new Event(FILES_CHANGED_EVENT)), 320);
   }
 
   return (
@@ -131,6 +136,12 @@ export function FileRow({ file }: { file: FileItem }) {
               {busy ? "削除中…" : "削除する"}
             </button>
           </div>
+        </div>
+      ) : null}
+
+      {shareError ? (
+        <div className="animate-rise-in mt-2 border-l-2 border-postal bg-postal/5 px-3 py-2">
+          <p className="font-body text-[13px] text-postal-deep">{shareError}</p>
         </div>
       ) : null}
 

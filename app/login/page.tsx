@@ -7,7 +7,12 @@ import { useRouter, useSearchParams } from "next/navigation";
 function LoginForm() {
   const router = useRouter();
   const params = useSearchParams();
-  const callbackUrl = params.get("callbackUrl") ?? "/files";
+  // オープンリダイレクト対策：サイト内パス（"/" 始まり、"//" 始まりは除外）のみ許可
+  const rawCallbackUrl = params.get("callbackUrl");
+  const callbackUrl =
+    rawCallbackUrl && rawCallbackUrl.startsWith("/") && !rawCallbackUrl.startsWith("//")
+      ? rawCallbackUrl
+      : "/files";
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");

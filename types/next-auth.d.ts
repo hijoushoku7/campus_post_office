@@ -16,5 +16,7 @@ declare module "next-auth" {
 declare module "next-auth/jwt" {
   interface JWT {
     role?: "ADMIN" | "MEMBER";
+    /** 最後にDBでユーザーの実在・有効性を確認した時刻 (epoch ms) */
+    dbCheckedAt?: number;
   }
 }

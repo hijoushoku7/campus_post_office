@@ -64,11 +64,32 @@ async function getUserId(req: IncomingMessage): Promise<string | null> {
 export async function createTusServer(): Promise<Server> {
   await ensureUploadDir();
 
+  const datastore = new FileStore({ directory: config.uploadDir });
+
   const server = new Server({
     path: TUS_PATH,
-    datastore: new FileStore({ directory: config.uploadDir }),
+    datastore,
     maxSize: config.maxFileSize,
     respectForwardedHeaders: true,
+    // 完了済みアップロードの実体は File レコードが参照する本体ファイルなので、
+    // クライアントの DELETE(キャンセル)で削除されないようにする。
+    disableTerminationForFinishedUploads: true,
+
+    // 全メソッド共通の認証。これが無いと既存アップロードへの
+    // HEAD/PATCH/DELETE が無認証で通ってしまう。
+    async onIncomingRequest(req, _res, uploadId) {
+      if (req.method === "OPTIONS") return;
+      const userId = await getUserId(req);
+      if (!userId) throw new TusError(401, "ログインが必要です");
+
+      // 既存アップロードへの操作（再開・キャンセル等）は所有者のみ許可
+      if (uploadId && req.method !== "POST") {
+        const upload = await datastore.getUpload(uploadId).catch(() => null);
+        if (upload?.metadata?.ownerId && upload.metadata.ownerId !== userId) {
+          throw new TusError(403, "このアップロードを操作する権限がありません");
+        }
+      }
+    },
 
     async onUploadCreate(req, res, upload: Upload) {
       const userId = await getUserId(req);

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { checkShare } from "@/lib/share";
+import { storageFileExists } from "@/lib/storage";
 import { buildDownloadResponse } from "@/lib/download";
 import { writeAudit } from "@/lib/audit";
 
@@ -21,11 +22,20 @@ export async function GET(
 
   const { share } = check;
 
-  // DL回数を加算（上限超過は次回以降 checkShare で弾かれる）
-  await prisma.shareLink.update({
+  // 実体が無い場合（クリーンアップとのレース等）はカウントを消費させない
+  if (!(await storageFileExists(share.file.storagePath))) {
+    return NextResponse.json({ error: "unavailable" }, { status: 410 });
+  }
+
+  // DL回数を原子的に加算し、加算後の値で上限を厳密に判定する。
+  // checkShare → increment の間に並行リクエストが入っても上限超過の配信を防ぐ。
+  const updated = await prisma.shareLink.update({
     where: { id: share.id },
     data: { downloadCount: { increment: 1 } },
   });
+  if (updated.maxDownloads != null && updated.downloadCount > updated.maxDownloads) {
+    return NextResponse.json({ error: "limit" }, { status: 410 });
+  }
 
   await writeAudit({
     userId: session.user.id,

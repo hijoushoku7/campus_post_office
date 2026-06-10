@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { checkShare } from "@/lib/share";
 import { formatBytes } from "@/lib/format";
@@ -65,9 +66,9 @@ export default async function SharePage({
             </>
           )}
 
-          <a href="/files" className="btn-ghost mt-6 w-full py-2.5">
+          <Link href="/files" className="btn-ghost mt-6 w-full py-2.5">
             ホームへ戻る
-          </a>
+          </Link>
         </div>
         <div className="airmail-edge h-3 rounded-b-sm opacity-70" />
       </div>

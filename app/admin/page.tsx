@@ -2,7 +2,8 @@ import { redirect } from "next/navigation";
 import { auth, isAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { getFreeSpace } from "@/lib/storage";
-import { formatBytes, remainingTime } from "@/lib/format";
+import { formatBytes, formatDate } from "@/lib/format";
+import Link from "next/link";
 import { AdminInvite } from "@/components/AdminInvite";
 
 export default async function AdminPage() {
@@ -50,9 +51,9 @@ export default async function AdminPage() {
             管理
           </h1>
         </div>
-        <a href="/files" className="btn-ghost">
+        <Link href="/files" className="btn-ghost">
           ファイルへ戻る
-        </a>
+        </Link>
       </header>
 
       {/* 集計の伝票カード */}
@@ -98,7 +99,7 @@ export default async function AdminPage() {
                 {infected.map((f) => (
                   <li key={f.id} className="flex justify-between font-mono text-xs">
                     <span className="truncate text-postal">{f.originalName}</span>
-                    <span className="text-muted">{remainingTime(f.createdAt)}</span>
+                    <span className="text-muted">{formatDate(f.createdAt)}</span>
                   </li>
                 ))}
               </ul>

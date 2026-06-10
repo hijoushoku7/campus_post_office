@@ -11,6 +11,17 @@ export function formatBytes(bytes: number | bigint): string {
   return `${v.toFixed(1)} ${units[i]}`;
 }
 
+// 日時を「2026/06/10 14:30」形式で整形する（ロケール依存を避け決定的に）
+export function formatDate(d: Date): string {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const y = d.getFullYear();
+  const MM = pad(d.getMonth() + 1);
+  const dd = pad(d.getDate());
+  const HH = pad(d.getHours());
+  const mm = pad(d.getMinutes());
+  return `${y}/${MM}/${dd} ${HH}:${mm}`;
+}
+
 export function remainingTime(expiresAt: Date): string {
   const ms = expiresAt.getTime() - Date.now();
   if (ms <= 0) return "期限切れ";

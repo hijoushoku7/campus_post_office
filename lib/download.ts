@@ -14,7 +14,17 @@ export async function buildDownloadResponse(
   rangeHeader: string | null,
 ): Promise<Response> {
   const absPath = resolveStoragePath(storageKey);
-  const { size } = await stat(absPath);
+
+  // 実体が無い（クリーンアップとのレース・ディスク異常など）場合は 500 にせず 404 を返す
+  let size: number;
+  try {
+    ({ size } = await stat(absPath));
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException)?.code === "ENOENT") {
+      return Response.json({ error: "file missing" }, { status: 404 });
+    }
+    throw err;
+  }
 
   const contentType = mimeType || "application/octet-stream";
   const dispositionName = encodeURIComponent(originalName);

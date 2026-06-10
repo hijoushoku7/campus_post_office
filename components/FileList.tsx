@@ -39,9 +39,13 @@ function hasPending(items: FileItem[]): boolean {
 
 export function FileList({ initialItems }: { initialItems: FileItem[] }) {
   const [items, setItems] = useState<FileItem[]>(initialItems);
-  // 最新の items を参照しつつ、ポーリングのスケジュールを作り直さないための ref
+  // 最新の items を参照しつつ、ポーリングのスケジュールを作り直さないための ref。
+  // ref はポーリングの setTimeout コールバック内でのみ参照するため、
+  // レンダー中の代入ではなく effect で同期する（react-hooks/refs）。
   const itemsRef = useRef(items);
-  itemsRef.current = items;
+  useEffect(() => {
+    itemsRef.current = items;
+  }, [items]);
 
   const refresh = useCallback(async () => {
     try {
@@ -60,16 +64,26 @@ export function FileList({ initialItems }: { initialItems: FileItem[] }) {
     let cancelled = false;
 
     const tick = async () => {
-      await refresh();
+      // タブが非表示の間は通信せず、次回のスケジュールだけ行う
+      if (document.visibilityState !== "hidden") {
+        await refresh();
+      }
       if (cancelled) return;
       const delay = hasPending(itemsRef.current) ? POLL_ACTIVE_MS : POLL_IDLE_MS;
       timer = setTimeout(tick, delay);
     };
 
+    // タブが再び表示されたら即時に更新する
+    const onVisible = () => {
+      if (document.visibilityState === "visible") void refresh();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+
     timer = setTimeout(tick, hasPending(itemsRef.current) ? POLL_ACTIVE_MS : POLL_IDLE_MS);
     return () => {
       cancelled = true;
       clearTimeout(timer);
+      document.removeEventListener("visibilitychange", onVisible);
     };
   }, [refresh]);
 

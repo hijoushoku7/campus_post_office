@@ -51,6 +51,7 @@ model User {
 
   files       File[]
   invitations Invitation[] @relation("InvitedBy")
+  shareLinks  ShareLink[]  @relation("ShareCreatedBy")
 }
 
 model Invitation {
@@ -63,8 +64,6 @@ model Invitation {
   createdById String
   createdBy   User      @relation("InvitedBy", fields: [createdById], references: [id])
   createdAt   DateTime  @default(now())
-
-  @@index([token])
 }
 
 model File {
@@ -97,10 +96,10 @@ model ShareLink {
   maxDownloads  Int?
   downloadCount Int       @default(0)
   createdById   String
+  createdBy     User      @relation("ShareCreatedBy", fields: [createdById], references: [id])
   createdAt     DateTime  @default(now())
 
   @@index([fileId])
-  @@index([token])
 }
 
 model AuditLog {

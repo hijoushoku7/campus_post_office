@@ -13,7 +13,8 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:deploy": "prisma migrate deploy",
     "seed": "tsx prisma/seed.ts",
-    "lint": "next lint",
+    "diag:files": "tsx scripts/diag-files.ts",
+    "lint": "eslint .",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -23,12 +24,15 @@
     "@tus/server": "^1.10.0",
     "bullmq": "^5.34.0",
     "ioredis": "5.10.1",
-    "next": "^15.1.3",
+    "next": "^16.2.9",
     "next-auth": "^5.0.0-beta.25",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "tus-js-client": "^4.3.1",
     "zod": "^3.24.1"
+  },
+  "overrides": {
+    "postcss": "$postcss"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",
@@ -36,7 +40,9 @@
     "@types/react-dom": "^19.0.2",
     "autoprefixer": "^10.4.20",
     "cross-env": "^7.0.3",
-    "postcss": "^8.4.49",
+    "eslint": "^9.39.4",
+    "eslint-config-next": "^16.2.9",
+    "postcss": "^8.5.15",
     "prisma": "^6.1.0",
     "tailwindcss": "^3.4.17",
     "tsx": "^4.19.2",
