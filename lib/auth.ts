@@ -11,8 +11,37 @@ const credentialsSchema = z.object({
   password: z.string().min(1),
 });
 
+// JWT はステートレスなため、無効化(isActive=false)・削除済みユーザーでも
+// 有効期限内の Cookie で通ってしまう。この間隔ごとに DB で実在・有効性を再検証する。
+const DB_REVALIDATE_MS = 10 * 60 * 1000;
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
+  callbacks: {
+    ...authConfig.callbacks,
+    async jwt({ token, user }) {
+      // ログイン直後: authorize が返した role を取り込み、検証時刻を記録
+      if (user) {
+        token.role = (user as { role?: "ADMIN" | "MEMBER" }).role;
+        token.dbCheckedAt = Date.now();
+        return token;
+      }
+
+      // 前回検証から一定時間経過していたら DB を再確認。
+      // 無効化・削除されたユーザーは null を返してセッションを無効化する。
+      if (Date.now() - (token.dbCheckedAt ?? 0) > DB_REVALIDATE_MS) {
+        if (!token.sub) return null;
+        const dbUser = await prisma.user.findUnique({
+          where: { id: token.sub },
+          select: { isActive: true, role: true },
+        });
+        if (!dbUser?.isActive) return null;
+        token.role = dbUser.role;
+        token.dbCheckedAt = Date.now();
+      }
+      return token;
+    },
+  },
   providers: [
     Credentials({
       credentials: {

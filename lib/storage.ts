@@ -1,5 +1,5 @@
 import { randomBytes } from "node:crypto";
-import { mkdir, statfs, unlink } from "node:fs/promises";
+import { access, mkdir, statfs, unlink } from "node:fs/promises";
 import path from "node:path";
 import { config } from "./config";
 
@@ -33,6 +33,16 @@ export async function getFreeSpace(): Promise<number> {
 export async function hasFreeSpaceFor(size: number): Promise<boolean> {
   const free = await getFreeSpace();
   return free - size >= config.minFreeSpace;
+}
+
+/** ファイル実体が存在するか */
+export async function storageFileExists(storageKey: string): Promise<boolean> {
+  try {
+    await access(resolveStoragePath(storageKey));
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 /** ファイル実体を削除（存在しなくてもエラーにしない） */

@@ -1,3 +1,4 @@
+import { readdir, stat } from "node:fs/promises";
 import { Worker } from "bullmq";
 import IORedis from "ioredis";
 import { cleanupQueue, SCAN_QUEUE, CLEANUP_QUEUE, type ScanJobData } from "@/lib/queue";
@@ -21,15 +22,24 @@ const scanWorker = new Worker<ScanJobData>(
     const absPath = resolveStoragePath(file.storagePath);
     const result = await scanPath(absPath);
 
+    // スキャン中(最大30分)にユーザーが削除している可能性があるため、
+    // SCANNING のままの場合だけ状態を進める（DELETED → READY への復活を防ぐ）。
     if (result.clean) {
-      await prisma.file.update({ where: { id: fileId }, data: { status: "READY" } });
-      console.log(`[scan] clean: ${file.originalName} (${fileId})`);
+      const updated = await prisma.file.updateMany({
+        where: { id: fileId, status: "SCANNING" },
+        data: { status: "READY" },
+      });
+      if (updated.count > 0) console.log(`[scan] clean: ${file.originalName} (${fileId})`);
       return;
     }
 
     // 感染検出 → 自動削除 + 監査記録（管理者はアプリ内で確認）
     await deleteStorageFile(file.storagePath);
-    await prisma.file.update({ where: { id: fileId }, data: { status: "INFECTED" } });
+    const updated = await prisma.file.updateMany({
+      where: { id: fileId, status: "SCANNING" },
+      data: { status: "INFECTED" },
+    });
+    if (updated.count === 0) return; // スキャン中に削除済み
     await writeAudit({
       userId: file.ownerId,
       action: "FILE_INFECTED",
@@ -42,6 +52,52 @@ const scanWorker = new Worker<ScanJobData>(
   },
   { connection, concurrency: 2 },
 );
+
+/**
+ * 放棄された tus アップロードの掃除。
+ * 未完了のままタブを閉じる/リロードすると、部分データ(<id>)と再開用メタ(<id>.json)が
+ * File レコードを持たないまま残り、期限切れ処理の対象にならず永久に溜まる。
+ * 一定時間(staleUploadHours)更新の無いものを放棄とみなして削除する。
+ * 完了済みアップロードの .json メタも不要になった時点で削除する（実体は本体ファイルなので残す）。
+ */
+async function cleanupStaleUploads(): Promise<number> {
+  const cutoff = Date.now() - config.staleUploadHours * 60 * 60 * 1000;
+  const entries = await readdir(config.uploadDir);
+  let removed = 0;
+
+  const infoNames = entries.filter((n) => n.endsWith(".json"));
+  if (infoNames.length === 0) return 0;
+
+  // File レコードの有無は1クエリでまとめて引いて Set 照合する（N+1 回避）
+  const ids = infoNames.map((n) => n.slice(0, -".json".length));
+  const rows = await prisma.file.findMany({
+    where: { storagePath: { in: ids } },
+    select: { storagePath: true },
+  });
+  const completed = new Set(rows.map((r) => r.storagePath));
+
+  for (const name of infoNames) {
+    const id = name.slice(0, -".json".length);
+
+    // File レコードがある = アップロード完了済み。再開用メタだけ片付ける。
+    if (completed.has(id)) {
+      await deleteStorageFile(name);
+      continue;
+    }
+
+    // 未完了アップロード: 最終更新が cutoff より古ければ放棄とみなす
+    // （新しいものはユーザーが再開する可能性があるので残す）
+    const blobStat = await stat(resolveStoragePath(id)).catch(() => null);
+    const infoStat = await stat(resolveStoragePath(name)).catch(() => null);
+    const newest = Math.max(blobStat?.mtimeMs ?? 0, infoStat?.mtimeMs ?? 0);
+    if (newest < cutoff) {
+      await deleteStorageFile(id);
+      await deleteStorageFile(name);
+      removed++;
+    }
+  }
+  return removed;
+}
 
 // ---- 期限切れ削除ワーカー ----
 const cleanupWorker = new Worker(
@@ -67,6 +123,16 @@ const cleanupWorker = new Worker(
       });
     }
     if (expired.length) console.log(`[cleanup] expired ${expired.length} file(s)`);
+
+    const stale = await cleanupStaleUploads();
+    if (stale) console.log(`[cleanup] removed ${stale} stale upload(s)`);
+
+    // 保持期限を過ぎた監査ログを削除（無限肥大の防止）
+    const auditCutoff = new Date(Date.now() - config.auditRetentionDays * 24 * 60 * 60 * 1000);
+    const prunedAudit = await prisma.auditLog.deleteMany({
+      where: { createdAt: { lt: auditCutoff } },
+    });
+    if (prunedAudit.count) console.log(`[cleanup] pruned ${prunedAudit.count} audit log(s)`);
   },
   { connection },
 );

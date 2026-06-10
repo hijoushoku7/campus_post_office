@@ -15,6 +15,8 @@ export const config = {
   maxExpiryDays: int("MAX_EXPIRY_DAYS", 30), // ユーザーが指定できる保管期限の上限（日）
   inviteExpiryHours: int("INVITE_EXPIRY_HOURS", 48), // 招待リンクの有効期限（時間）
   uploadChunkSize: int("UPLOAD_CHUNK_SIZE", 50 * 1024 * 1024), // 50MB
+  staleUploadHours: int("STALE_UPLOAD_HOURS", 24), // 未完了アップロードを放棄とみなすまでの時間
+  auditRetentionDays: int("AUDIT_RETENTION_DAYS", 90), // 監査ログの保持日数
   minFreeSpace: int("MIN_FREE_SPACE", 20 * 1024 * 1024 * 1024), // 20GB
   redisUrl: process.env.REDIS_URL ?? "redis://redis:6379",
   clamav: {

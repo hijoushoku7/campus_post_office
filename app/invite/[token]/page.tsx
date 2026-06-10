@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { checkInvite } from "@/lib/invite";
 import { InviteForm } from "@/components/InviteForm";
 
@@ -48,9 +49,9 @@ export default async function InvitePage({
               <p className="font-body italic text-muted">
                 {REASON_TEXT[check.reason] ?? "エラーが発生しました"}
               </p>
-              <a href="/login" className="btn-ghost mt-6 w-full py-2.5">
+              <Link href="/login" className="btn-ghost mt-6 w-full py-2.5">
                 ログインへ
-              </a>
+              </Link>
             </div>
           ) : (
             <InviteForm token={token} fixedEmail={check.invite.email} />

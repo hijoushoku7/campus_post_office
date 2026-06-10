@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 export function InviteForm({
   token,
@@ -51,9 +52,9 @@ export function InviteForm({
         <p className="mt-2 font-body italic text-muted">
           ログイン画面へ移動します…
         </p>
-        <a href="/login" className="btn-wax mt-6 w-full py-3">
+        <Link href="/login" className="btn-wax mt-6 w-full py-3">
           ログインへ
-        </a>
+        </Link>
       </div>
     );
   }

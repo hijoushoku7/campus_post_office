@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth, isAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { visibleFileWhere } from "@/lib/file-query";
 
 export async function GET(req: Request) {
   const session = await auth();
@@ -12,11 +13,9 @@ export async function GET(req: Request) {
   const all = url.searchParams.get("all") === "true" && isAdmin(session);
 
   const files = await prisma.file.findMany({
-    where: {
-      ...(all ? {} : { ownerId: session.user.id }),
-      status: { notIn: ["DELETED", "EXPIRED"] },
-    },
+    where: visibleFileWhere(all ? undefined : session.user.id),
     orderBy: { createdAt: "desc" },
+    take: 1000, // 安全弁: 無制限取得を防ぐ（UIページネーションは今後の課題）
     select: {
       id: true,
       originalName: true,

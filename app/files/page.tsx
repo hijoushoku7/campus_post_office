@@ -1,21 +1,22 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { auth, signOut } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { visibleFileWhere } from "@/lib/file-query";
 import { formatBytes, remainingTime } from "@/lib/format";
 import { config } from "@/lib/config";
 import { Uploader } from "@/components/Uploader";
-import { FileRow, type FileItem } from "@/components/FileRow";
+import { FileList } from "@/components/FileList";
+import type { FileItem } from "@/components/FileRow";
 
 export default async function FilesPage() {
   const session = await auth();
   if (!session?.user) redirect("/login");
 
   const files = await prisma.file.findMany({
-    where: {
-      ownerId: session.user.id,
-      status: { notIn: ["DELETED", "EXPIRED"] },
-    },
+    where: visibleFileWhere(session.user.id),
     orderBy: { createdAt: "desc" },
+    take: 1000, // 安全弁: 無制限取得を防ぐ（UIページネーションは今後の課題）
     select: {
       id: true,
       originalName: true,
@@ -33,8 +34,6 @@ export default async function FilesPage() {
     status: f.status,
     remaining: remainingTime(f.expiresAt),
   }));
-
-  const liveCount = items.filter((f) => f.status === "READY").length;
 
   return (
     <main className="mx-auto max-w-5xl px-6 py-10">
@@ -56,9 +55,9 @@ export default async function FilesPage() {
             <p className="font-mono text-sm text-ink">{session.user.email}</p>
           </div>
           {session.user.role === "ADMIN" ? (
-            <a href="/admin" className="btn-ghost">
+            <Link href="/admin" className="btn-ghost">
               管理
-            </a>
+            </Link>
           ) : null}
           <form
             action={async () => {
@@ -84,32 +83,9 @@ export default async function FilesPage() {
           />
         </section>
 
-        {/* ファイル一覧 */}
+        {/* ファイル一覧（クライアントでポーリングしてスキャン状況を反映） */}
         <section className="animate-rise-in" style={{ animationDelay: "120ms" }}>
-          <div className="mb-3 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="postmark px-2 py-0.5 text-[10px]">File</span>
-              <h2 className="font-display text-xl">ファイル一覧</h2>
-            </div>
-            <span className="font-mono text-xs text-muted">
-              共有可能 {liveCount} / 全 {items.length}
-            </span>
-          </div>
-
-          <div className="card-paper overflow-hidden">
-            <div className="airmail-edge h-2 opacity-60" />
-            {items.length === 0 ? (
-              <p className="px-5 py-16 text-center font-body italic text-muted">
-                まだファイルがありません。最初のファイルをアップロードしましょう。
-              </p>
-            ) : (
-              <ul className="divide-y divide-line">
-                {items.map((f) => (
-                  <FileRow key={f.id} file={f} />
-                ))}
-              </ul>
-            )}
-          </div>
+          <FileList initialItems={items} />
         </section>
       </div>
     </main>

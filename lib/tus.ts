@@ -21,6 +21,26 @@ function resolveExpiryDays(raw: string | null | undefined): number {
   return Math.min(n, config.maxExpiryDays);
 }
 
+/**
+ * Promise にタイムアウトを付与する。依存サービス(Redis等)が応答しない場合でも
+ * onUploadFinish が無限に待たず、アップロード完了応答を返せるようにする。
+ */
+function withTimeout<T>(p: Promise<T>, ms: number, label: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms);
+    p.then(
+      (v) => {
+        clearTimeout(timer);
+        resolve(v);
+      },
+      (err) => {
+        clearTimeout(timer);
+        reject(err);
+      },
+    );
+  });
+}
+
 class TusError extends Error {
   status_code: number;
   body: string;
@@ -44,11 +64,32 @@ async function getUserId(req: IncomingMessage): Promise<string | null> {
 export async function createTusServer(): Promise<Server> {
   await ensureUploadDir();
 
+  const datastore = new FileStore({ directory: config.uploadDir });
+
   const server = new Server({
     path: TUS_PATH,
-    datastore: new FileStore({ directory: config.uploadDir }),
+    datastore,
     maxSize: config.maxFileSize,
     respectForwardedHeaders: true,
+    // 完了済みアップロードの実体は File レコードが参照する本体ファイルなので、
+    // クライアントの DELETE(キャンセル)で削除されないようにする。
+    disableTerminationForFinishedUploads: true,
+
+    // 全メソッド共通の認証。これが無いと既存アップロードへの
+    // HEAD/PATCH/DELETE が無認証で通ってしまう。
+    async onIncomingRequest(req, _res, uploadId) {
+      if (req.method === "OPTIONS") return;
+      const userId = await getUserId(req);
+      if (!userId) throw new TusError(401, "ログインが必要です");
+
+      // 既存アップロードへの操作（再開・キャンセル等）は所有者のみ許可
+      if (uploadId && req.method !== "POST") {
+        const upload = await datastore.getUpload(uploadId).catch(() => null);
+        if (upload?.metadata?.ownerId && upload.metadata.ownerId !== userId) {
+          throw new TusError(403, "このアップロードを操作する権限がありません");
+        }
+      }
+    },
 
     async onUploadCreate(req, res, upload: Upload) {
       const userId = await getUserId(req);
@@ -111,15 +152,30 @@ export async function createTusServer(): Promise<Server> {
         },
       });
 
-      await enqueueScan(file.id);
-      await writeAudit({
-        userId: ownerId,
-        action: "FILE_UPLOADED",
-        targetType: "file",
-        targetId: file.id,
-        result: "ok",
-        detail: { originalName, size: String(upload.size ?? 0) },
-      });
+      // File は作成済み（= 真実の状態）。スキャン投入・監査の遅延/失敗で
+      // tus の完了応答(204)をブロックし、クライアントのアップロードが永久に
+      // 終わらなくなることを防ぐ。失敗は握りつぶさず必ずログに残す。
+      try {
+        await withTimeout(enqueueScan(file.id), 10_000, "enqueueScan");
+      } catch (err) {
+        console.error("[tus] enqueueScan failed", file.id, err);
+      }
+      try {
+        await withTimeout(
+          writeAudit({
+            userId: ownerId,
+            action: "FILE_UPLOADED",
+            targetType: "file",
+            targetId: file.id,
+            result: "ok",
+            detail: { originalName, size: String(upload.size ?? 0) },
+          }),
+          10_000,
+          "writeAudit",
+        );
+      } catch (err) {
+        console.error("[tus] writeAudit failed", file.id, err);
+      }
 
       return { res };
     },
