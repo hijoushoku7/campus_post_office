@@ -28,10 +28,23 @@ export default async function AdminPage() {
       prisma.auditLog.findMany({
         orderBy: { createdAt: "desc" },
         take: 12,
-        select: { id: true, action: true, createdAt: true, result: true },
+        select: { id: true, action: true, createdAt: true, result: true, userId: true },
       }),
       getFreeSpace().catch(() => 0),
     ]);
+
+  // AuditLog は User への FK を持たない（削除済みユーザーのログも残す設計）。
+  // 表示時にだけ userId→email を一括解決し、Map で O(1) 参照する。
+  const auditUserIds = [
+    ...new Set(recentAudit.map((a) => a.userId).filter((id): id is string => !!id)),
+  ];
+  const auditUsers = auditUserIds.length
+    ? await prisma.user.findMany({
+        where: { id: { in: auditUserIds } },
+        select: { id: true, email: true },
+      })
+    : [];
+  const emailById = new Map(auditUsers.map((u) => [u.id, u.email]));
 
   const totalSize = sizeAgg._sum.size ?? BigInt(0);
 
@@ -51,9 +64,14 @@ export default async function AdminPage() {
             管理
           </h1>
         </div>
-        <Link href="/files" className="btn-ghost">
-          ファイルへ戻る
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link href="/admin/files" className="btn-ghost">
+            全ファイル
+          </Link>
+          <Link href="/files" className="btn-ghost">
+            ファイルへ戻る
+          </Link>
+        </div>
       </header>
 
       {/* 集計の伝票カード */}
@@ -118,10 +136,13 @@ export default async function AdminPage() {
               {recentAudit.map((a) => (
                 <li
                   key={a.id}
-                  className="flex justify-between font-mono text-[11px] text-ink"
+                  className="flex items-baseline justify-between gap-3 font-mono text-[11px] text-ink"
                 >
-                  <span>{a.action}</span>
-                  <span className="text-muted">{a.result}</span>
+                  <span className="shrink-0">{a.action}</span>
+                  <span className="min-w-0 flex-1 truncate text-right text-muted">
+                    {a.userId ? (emailById.get(a.userId) ?? "（削除済みユーザー）") : "—"}
+                  </span>
+                  <span className="shrink-0 text-muted">{a.result}</span>
                 </li>
               ))}
             </ul>
