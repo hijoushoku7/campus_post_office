@@ -89,7 +89,7 @@ services:
 networks:
   tunnel_net:
     external: true
-    name: tunnel_net
+    name: cloudflared_tunnel_net
 volumes:
   pg_data:
   redis_data:
