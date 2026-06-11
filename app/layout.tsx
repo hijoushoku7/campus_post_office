@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Fraunces, Newsreader, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
+import { SplashGate } from "@/components/SplashGate";
 
 // 見出し: 個性的なセリフ
 const fraunces = Fraunces({
@@ -42,7 +43,10 @@ export default function RootLayout({
       lang="ja"
       className={`${fraunces.variable} ${newsreader.variable} ${jetbrains.variable}`}
     >
-      <body>{children}</body>
+      <body>
+        <SplashGate />
+        {children}
+      </body>
     </html>
   );
 }

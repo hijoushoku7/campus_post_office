@@ -3,6 +3,10 @@
 import { Suspense, useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { LoadingOverlay } from "@/components/LoadingOverlay";
+
+// ログイン成功後、一覧へ遷移するまでロゴを見せる時間
+const DELIVER_MS = 1200;
 
 function LoginForm() {
   const router = useRouter();
@@ -18,6 +22,7 @@ function LoginForm() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [delivering, setDelivering] = useState(false);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -28,13 +33,21 @@ function LoginForm() {
       password,
       redirect: false,
     });
-    setLoading(false);
     if (res?.error) {
+      setLoading(false);
       setError("メールアドレスまたはパスワードが正しくありません");
       return;
     }
-    router.push(callbackUrl);
-    router.refresh();
+    // 「配達中」のロゴを少し見せてから一覧へ遷移
+    setDelivering(true);
+    setTimeout(() => {
+      router.push(callbackUrl);
+      router.refresh();
+    }, DELIVER_MS);
+  }
+
+  if (delivering) {
+    return <LoadingOverlay caption="delivering" />;
   }
 
   return (
