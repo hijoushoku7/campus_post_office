@@ -20,6 +20,7 @@ interface ApiFile {
   size: string;
   status: string;
   expiresAt: string;
+  ownerEmail?: string | null;
 }
 
 function toItem(f: ApiFile): FileItem {
@@ -29,6 +30,7 @@ function toItem(f: ApiFile): FileItem {
     sizeLabel: formatBytes(Number(f.size)),
     status: f.status,
     remaining: remainingTime(new Date(f.expiresAt)),
+    ownerEmail: f.ownerEmail ?? null,
   };
 }
 
@@ -37,7 +39,14 @@ function hasPending(items: FileItem[]): boolean {
   return items.some((f) => f.status === "UPLOADING" || f.status === "SCANNING");
 }
 
-export function FileList({ initialItems }: { initialItems: FileItem[] }) {
+export function FileList({
+  initialItems,
+  all = false,
+}: {
+  initialItems: FileItem[];
+  /** admin の全ファイル閲覧。true なら ?all=true で全ユーザーのファイルを取得する */
+  all?: boolean;
+}) {
   const [items, setItems] = useState<FileItem[]>(initialItems);
   // 最新の items を参照しつつ、ポーリングのスケジュールを作り直さないための ref。
   // ref はポーリングの setTimeout コールバック内でのみ参照するため、
@@ -49,14 +58,16 @@ export function FileList({ initialItems }: { initialItems: FileItem[] }) {
 
   const refresh = useCallback(async () => {
     try {
-      const res = await fetch("/api/files", { cache: "no-store" });
+      const res = await fetch(all ? "/api/files?all=true" : "/api/files", {
+        cache: "no-store",
+      });
       if (!res.ok) return;
       const data: { files: ApiFile[] } = await res.json();
       setItems(data.files.map(toItem));
     } catch {
       // ネットワーク一時障害などは無視（次のポーリングで回復）
     }
-  }, []);
+  }, [all]);
 
   // 状態に応じた間隔で自動ポーリング。処理中ファイルが無くなれば間隔を広げる。
   useEffect(() => {

@@ -9,6 +9,8 @@ export interface FileItem {
   sizeLabel: string;
   status: string;
   remaining: string;
+  /** 所有者メール（admin の全ファイル閲覧時のみ表示用に渡される） */
+  ownerEmail?: string | null;
 }
 
 const STATUS: Record<string, { text: string; cls: string }> = {
@@ -80,6 +82,7 @@ export function FileRow({ file }: { file: FileItem }) {
           </p>
           <p className="mt-0.5 font-mono text-[11px] text-muted">
             {file.sizeLabel} · {file.remaining}
+            {file.ownerEmail ? ` · ${file.ownerEmail}` : ""}
           </p>
         </div>
 

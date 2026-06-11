@@ -24,10 +24,15 @@ export async function GET(req: Request) {
       expiresAt: true,
       createdAt: true,
       ownerId: true,
+      owner: { select: { email: true } },
     },
   });
 
   return NextResponse.json({
-    files: files.map((f) => ({ ...f, size: f.size.toString() })),
+    files: files.map(({ owner, ...f }) => ({
+      ...f,
+      size: f.size.toString(),
+      ownerEmail: owner?.email ?? null,
+    })),
   });
 }

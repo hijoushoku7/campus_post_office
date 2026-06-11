@@ -135,19 +135,20 @@ docker compose logs -f clamav   # "Self checking every ..." 等が出ればDB準
 
 ## 5. データベース初期化 & 管理者作成
 
-コンテナ起動後、一度だけ実行します。**マイグレーション方式（`migrate deploy`）**でスキーマを適用します。
+コンテナ起動後、一度だけ実行します。**`prisma db push` 方式**で、現在の `schema.prisma` を直接DBへ反映します。
 
 ```bash
-# スキーマをDBへ反映（prisma/migrations を適用）
-docker compose run --rm app npm run prisma:deploy
+# スキーマをDBへ反映（schema.prisma の内容をそのままDBへ反映）
+docker compose run --rm app npx prisma db push
 
 # 初期管理者アカウントを作成（.env の SEED_ADMIN_* を使用）
 docker compose run --rm app npm run seed
 ```
 
-> `prisma:deploy` は `prisma migrate deploy` のエイリアスです（[package.json](../package.json)）。
-> 開発機でスキーマを変更した場合は、まず開発機で `npm run prisma:migrate` を実行して
-> `prisma/migrations` にマイグレーションを生成・コミットし、本番では `prisma:deploy` で適用します。
+> このプロジェクトは `prisma/migrations`（マイグレーション履歴）を持たないため、
+> `prisma migrate deploy` ではテーブルが作られません（`No migration found` で何もせず終了）。
+> 代わりに `prisma db push` で `schema.prisma` を直接DBへ反映します。
+> スキーマを変更した場合も、同じく `prisma db push` を再実行して反映してください。
 
 ---
 
@@ -195,8 +196,8 @@ docker compose up -d
 ```bash
 git pull                          # 新しいコードを取得
 docker compose up -d --build      # 再ビルドして反映
-# スキーマ変更（新しいマイグレーション）があった場合のみ:
-docker compose run --rm app npm run prisma:deploy
+# スキーマ（schema.prisma）に変更があった場合のみ:
+docker compose run --rm app npx prisma db push
 ```
 
 ### バックアップ（DB）
@@ -245,7 +246,8 @@ docker compose exec app npm run diag:files user@example.com # 特定ユーザー
 | 共有/ファイル一覧が空 + 「orphan」 | DB再作成・seed やり直しで `User.id` が変わったのに古い Cookie が残存。**ログアウト→再ログイン**で解消（`diag:files` で検出可） |
 | サイトに繋がらない | `docker compose logs cloudflared` でトンネル接続を確認。Public Hostname の URL が `app:3000` か確認 |
 | ログインできない | `AUTH_SECRET` 未設定/変更、または seed 未実行。手順3・5を確認 |
-| `prisma:deploy` が FK 違反で失敗 | 過去データに削除済みユーザーを指す `ShareLink.createdById` 等がある場合。`DELETE FROM "ShareLink" WHERE "createdById" NOT IN (SELECT id FROM "User");` 等で不整合行を掃除してから再実行 |
+| `prisma db push` が FK 違反で失敗 | 過去データに削除済みユーザーを指す `ShareLink.createdById` 等がある場合。`DELETE FROM "ShareLink" WHERE "createdById" NOT IN (SELECT id FROM "User");` 等で不整合行を掃除してから再実行 |
+| `No migration found in prisma/migrations` | このプロジェクトはマイグレーション履歴を持たない。`prisma migrate deploy` ではなく `npx prisma db push` を使う（手順5参照） |
 | メモリ不足で落ちる | ClamAV が重い。サーバーのRAMを増やすか、用途次第でスキャン方針の見直しを検討 |
 
 ---
