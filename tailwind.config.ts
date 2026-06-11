@@ -39,11 +39,23 @@ export default {
           "0%": { opacity: "1", transform: "translateX(0)", maxHeight: "200px" },
           "100%": { opacity: "0", transform: "translateX(16px)", maxHeight: "0px" },
         },
+        // ローディングロゴ: 1文字ずつ上下に波打つ
+        wave: {
+          "0%, 60%, 100%": { transform: "translateY(0)" },
+          "30%": { transform: "translateY(-0.32em)" },
+        },
+        // スプラッシュ: しばらく保持してからフェードアウト
+        "splash-out": {
+          "0%, 70%": { opacity: "1" },
+          "100%": { opacity: "0" },
+        },
       },
       animation: {
         "stamp-in": "stamp-in 0.5s cubic-bezier(0.2,0.8,0.2,1) both",
         "rise-in": "rise-in 0.6s cubic-bezier(0.2,0.8,0.2,1) both",
         "fade-collapse": "fade-collapse 0.35s cubic-bezier(0.4,0,1,1) forwards",
+        wave: "wave 1.4s ease-in-out infinite",
+        "splash-out": "splash-out 1.7s ease-in forwards",
       },
     },
   },
