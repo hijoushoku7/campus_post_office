@@ -14,8 +14,7 @@ services:
       timeout: 5s
       retries: 10
     networks:
-      external: true
-      name: tunnel_net
+      - tunnel_net
 
   redis:
     image: redis:7-alpine
@@ -29,8 +28,7 @@ services:
       timeout: 3s
       retries: 10
     networks:
-      external: true
-      name: tunnel_net
+      - tunnel_net
 
   clamav:
     image: clamav/clamav:latest
@@ -48,8 +46,7 @@ services:
       # 初回はシグネチャDLに数分かかる
       start_period: 300s
     networks:
-      external: true
-      name: tunnel_net
+      - tunnel_net
 
   app:
     build:
@@ -68,8 +65,7 @@ services:
       redis:
         condition: service_healthy
     networks:
-      external: true
-      name: tunnel_net
+      - tunnel_net
   worker:
     build:
       context: .
@@ -89,9 +85,11 @@ services:
       clamav:
         condition: service_started
     networks:
-      external: true
-      name: tunnel_net
-    
+      - tunnel_net
+networks:
+  tunnel_net:
+    external: true
+    name: tunnel_net
 volumes:
   pg_data:
   redis_data:
