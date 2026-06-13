@@ -29,8 +29,8 @@ const jetbrains = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Campus Post Office — Secure Dispatch",
-  description: "身内向けセキュアファイル共有 — 安全に届ける、内輪の郵便局",
+  title: "ShareMon - Share your own files",
+  description: "安全で高速なファイル共有を実現 ー \"Mon\"（仏語: 私の）ファイルを共有する郵便局",
 };
 
 export default function RootLayout({

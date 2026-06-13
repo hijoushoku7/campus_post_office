@@ -70,8 +70,8 @@ function LoginForm() {
         >
           <header className="space-y-1">
             <div className="flex items-center justify-between">
-              <p className="field-label">Campus Post Office</p>
-              <span className="postmark px-2 py-0.5 text-[10px]">PO</span>
+              <p className="field-label">ShareMon Center</p>
+              <span className="postmark px-2 py-0.5 text-[10px]">SC</span>
             </div>
             <h1 className="font-display text-4xl font-semibold tracking-tight">
               ログイン

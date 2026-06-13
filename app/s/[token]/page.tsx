@@ -29,7 +29,7 @@ export default async function SharePage({
         <div className="airmail-edge h-3 rounded-t-sm" />
         <div className="card-paper rounded-t-none p-9 text-center">
           <div className="mb-5 flex items-center justify-between">
-            <p className="field-label">Campus Post Office</p>
+            <p className="field-label">ShareMon Center</p>
             <span className="postmark px-2 py-0.5 text-[10px]">DL</span>
           </div>
 
