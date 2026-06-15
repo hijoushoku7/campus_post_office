@@ -30,7 +30,12 @@ export default async function InvitePage({
         <div className="card-paper rounded-t-none p-9">
           <header className="mb-7 space-y-1">
             <div className="flex items-center justify-between">
-              <p className="field-label">ShareMon Center</p>
+              <Link
+                href="/"
+                className="field-label transition-colors hover:text-ink"
+              >
+                ShareMon Center
+              </Link>
               <span className="postmark px-2 py-0.5 text-[10px]">Invite</span>
             </div>
             <h1 className="font-display text-4xl font-semibold tracking-tight">
