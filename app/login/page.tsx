@@ -1,12 +1,9 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useState, useTransition } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { LoadingOverlay } from "@/components/LoadingOverlay";
-
-// ログイン成功後、一覧へ遷移するまでロゴを見せる時間
-const DELIVER_MS = 1200;
 
 function LoginForm() {
   const router = useRouter();
@@ -22,7 +19,7 @@ function LoginForm() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [delivering, setDelivering] = useState(false);
+  const [isPending, startTransition] = useTransition();
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -38,15 +35,14 @@ function LoginForm() {
       setError("メールアドレスまたはパスワードが正しくありません");
       return;
     }
-    // 「配達中」のロゴを少し見せてから一覧へ遷移
-    setDelivering(true);
-    setTimeout(() => {
+    // 遷移をトランジションで包み、/files の取得が終わるまで「配達中」を見せる（固定秒なし）
+    startTransition(() => {
       router.push(callbackUrl);
       router.refresh();
-    }, DELIVER_MS);
+    });
   }
 
-  if (delivering) {
+  if (isPending) {
     return <LoadingOverlay caption="delivering" />;
   }
 

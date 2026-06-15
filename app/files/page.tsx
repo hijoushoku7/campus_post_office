@@ -7,6 +7,7 @@ import { formatBytes, remainingTime } from "@/lib/format";
 import { config } from "@/lib/config";
 import { Uploader } from "@/components/Uploader";
 import { FileList } from "@/components/FileList";
+import { RevealOverlay } from "@/components/RevealOverlay";
 import type { FileItem } from "@/components/FileRow";
 
 export default async function FilesPage() {
@@ -37,6 +38,8 @@ export default async function FilesPage() {
 
   return (
     <main className="mx-auto max-w-5xl px-6 py-10">
+      {/* ローディング幕（loading.tsx）から中身へ 0.5s でフェードアウト */}
+      <RevealOverlay caption="sorting the mail" />
       {/* ヘッダ */}
       <header className="mb-10 flex flex-wrap items-end justify-between gap-4 border-b border-line pb-6">
         <div className="animate-rise-in">

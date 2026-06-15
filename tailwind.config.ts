@@ -49,6 +49,11 @@ export default {
           "0%, 70%": { opacity: "1" },
           "100%": { opacity: "0" },
         },
+        // ローディング幕→コンテンツへの素直なフェードアウト
+        "fade-out": {
+          "0%": { opacity: "1" },
+          "100%": { opacity: "0" },
+        },
       },
       animation: {
         "stamp-in": "stamp-in 0.5s cubic-bezier(0.2,0.8,0.2,1) both",
@@ -56,6 +61,7 @@ export default {
         "fade-collapse": "fade-collapse 0.35s cubic-bezier(0.4,0,1,1) forwards",
         wave: "wave 1.4s ease-in-out infinite",
         "splash-out": "splash-out 1.7s ease-in forwards",
+        "fade-out": "fade-out 0.5s ease-in forwards",
       },
     },
   },
