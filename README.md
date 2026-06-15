@@ -12,7 +12,7 @@
 - 📦 最大 10GB の **再開可能チャンクアップロード**（tus, 50MB チャンク）
 - 🔗 **ログイン必須の共有リンク**（トークン + 有効期限）
 - 🦠 アップロード時 **ウイルススキャン**（ClamAV, 感染時は自動削除＋アプリ内通知）
-- ⏳ **7日で自動削除**（期限切れジョブ）
+- ⏳ **指定日時で自動削除**（期限切れジョブ）
 - 📝 監査ログ
 - 🌐 Cloudflare Tunnel（ポート開放・固定IP不要、TLSはCFが終端）
 
@@ -108,8 +108,8 @@ npm run worker:dev
 
 ```
 app/            Next.js (App Router) ページ & API
-  login/  files/  s/[token]/  admin/  api/
-components/      クライアントコンポーネント（Uploader, FileRow）
+  login/  files/  s/[token]/  admin/  admin/files/  api/
+components/      クライアントコンポーネント（Uploader, FileList, LoadingOverlay 等）
 lib/             auth, db, tus, queue, storage, clamd, share, download, audit
 worker/          BullMQ ワーカー（scan / cleanup）
 prisma/          schema.prisma, seed.ts
@@ -118,7 +118,7 @@ server.ts        Next.js + tus 同居のカスタムサーバ
 docker-compose.yml
 ```
 
-## 実装状況（雛形）
+## 実装状況
 
 - [x] 認証（ログイン / セッション / ルート保護）
 - [x] アップロード（tus 再開可能・チャンク）
@@ -126,6 +126,7 @@ docker-compose.yml
 - [x] 共有リンク発行 / 受取 / 失効
 - [x] ウイルススキャン・期限切れ削除（worker）
 - [x] 管理ダッシュボード（統計・感染履歴・監査ログ）
+- [x] 管理者向けファイル一覧（`/admin/files`）
 - [ ] 招待フロー画面（`/admin/invitations`, `/invite/[token]`）
 - [ ] ユーザー管理画面（`/admin/users`）
 - [ ] パスワード変更（`/settings`）

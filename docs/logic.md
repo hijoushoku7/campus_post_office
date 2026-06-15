@@ -323,3 +323,46 @@ BullMQ。Queue とは別の専用 Redis 接続（`maxRetriesPerRequest: null`）
 
 - 期限の選択肢 `EXPIRY_OPTIONS = [1,3,7,14,30]` を `maxExpiryDays` 以内に絞る
 - アップロード状態: `uploading`（進捗＋キャンセル可）/ `done` / `error` / `canceled`
+
+---
+
+## 12. ローディング・遷移アニメーション
+
+### ページ遷移ローディングの設計方針
+
+固定秒スプラッシュ（旧 `SplashGate`）は廃止。ローディング表示の長さを**データ取得の完了**に合わせることで、
+遅すぎる待機や「ちらつき」を回避する。
+
+### `LoadingOverlay`（[components/LoadingOverlay.tsx](../components/LoadingOverlay.tsx)）
+
+フルスクリーンのローディング幕。`PostOfficeLogo` を中央に配置し、
+上下端にエアメールストライプを重ねる。`className` で外からアニメを差し込める共通基盤。
+
+### `/files` のロード体験（2層構成）
+
+```
+ブラウザが /files を要求
+  │
+  ├─ RSC フェッチ中: loading.tsx (Suspense フォールバック)
+  │    └─ LoadingOverlay "sorting the mail" をフルスクリーン表示
+  │         (fetch が終わった瞬間に React が差し替え)
+  │
+  └─ コンテンツ表示後: RevealOverlay (page.tsx 内)
+       └─ 同じ LoadingOverlay を最前面に重ね、0.5s かけてフェードアウト
+            (React の Suspense は "差し替え" でアニメできないため、
+             コンテンツ側に幕を持たせて自前でフェードする)
+```
+
+- **[app/files/loading.tsx](../app/files/loading.tsx)**: Next.js Suspense フォールバック。
+  フルロード時（初回表示）と Client Navigation 時（`Link` / `router.push`）の両方で機能し、
+  fetch 完了まで表示される。固定秒は不要。
+- **[components/RevealOverlay.tsx](../components/RevealOverlay.tsx)**: `useEffect` で
+  マウント直後に `setTimeout(500ms)` → `show = false` としてフェード消滅。
+  `animate-fade-out` は `tailwind.config.ts` の `fade-out` キーフレーム（0.5s ease-in）。
+
+### ログイン成功時の遷移
+
+旧実装では `setTimeout(1200ms)` で固定秒後に遷移していた。
+現行では `useTransition()` を使い、`router.push` / `router.refresh` が完了するまで
+（= `/files` の RSC フェッチが終わるまで）`LoadingOverlay "delivering"` を表示し続ける。
+**ネットワーク速度に追従する可変待機**で、ちらつきと過剰な待機の両方を防ぐ。
