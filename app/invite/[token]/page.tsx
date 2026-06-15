@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { checkInvite } from "@/lib/invite";
 import { InviteForm } from "@/components/InviteForm";
+import { BackLink } from "@/components/BackLink";
 
 const REASON_TEXT: Record<string, string> = {
   not_found: "招待リンクが見つかりません",
@@ -24,6 +25,12 @@ export default async function InvitePage({
       >
         ✉
       </div>
+
+      <BackLink
+        href="/"
+        label="ホーム画面へ"
+        className="absolute left-6 top-6 z-10"
+      />
 
       <div className="relative w-full max-w-md animate-rise-in">
         <div className="airmail-edge h-3 rounded-t-sm" />

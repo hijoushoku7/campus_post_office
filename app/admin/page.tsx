@@ -5,6 +5,7 @@ import { getFreeSpace } from "@/lib/storage";
 import { formatBytes, formatDate } from "@/lib/format";
 import Link from "next/link";
 import { AdminInvite } from "@/components/AdminInvite";
+import { BackLink } from "@/components/BackLink";
 
 export default async function AdminPage() {
   const session = await auth();
@@ -57,6 +58,7 @@ export default async function AdminPage() {
 
   return (
     <main className="mx-auto max-w-5xl px-6 py-10">
+      <BackLink href="/files" label="ファイルへ戻る" className="mb-6" />
       <header className="mb-10 flex items-end justify-between border-b border-line pb-6">
         <div className="animate-rise-in">
           <p className="field-label">ShareMon Center · 管理</p>
@@ -67,9 +69,6 @@ export default async function AdminPage() {
         <div className="flex items-center gap-2">
           <Link href="/admin/files" className="btn-ghost">
             全ファイル
-          </Link>
-          <Link href="/files" className="btn-ghost">
-            ファイルへ戻る
           </Link>
         </div>
       </header>
