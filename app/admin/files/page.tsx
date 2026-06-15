@@ -37,15 +37,18 @@ export default async function AdminFilesPage() {
     remaining: remainingTime(f.expiresAt),
     ownerEmail: f.owner?.email ?? null,
   }));
+  /**
+          <h1 className="mt-1 font-display text-5xl font-semibold tracking-tight">
+            全ファイル
+          </h1>
+   */
 
   return (
     <main className="mx-auto max-w-5xl px-6 py-10">
       <header className="mb-10 flex items-end justify-between border-b border-line pb-6">
         <div className="animate-rise-in">
           <p className="field-label">ShareMon Center · 管理</p>
-          <h1 className="mt-1 font-display text-5xl font-semibold tracking-tight">
-            全ファイル
-          </h1>
+
           <p className="mt-1 font-body italic text-muted">
             全ユーザーのファイルを閲覧・管理できます。
           </p>
