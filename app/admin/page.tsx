@@ -3,8 +3,7 @@ import { auth, isAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { getFreeSpace } from "@/lib/storage";
 import { formatBytes, formatDate } from "@/lib/format";
-// 全ファイル閲覧リンクを戻す際は、この import のコメントも解除する。
-// import Link from "next/link";
+import Link from "next/link";
 import { AdminInvite } from "@/components/AdminInvite";
 
 export default async function AdminPage() {
@@ -71,6 +70,9 @@ export default async function AdminPage() {
           {/* <Link href="/admin/files" className="btn-ghost">
             全ファイル
           </Link> */}
+          <Link href="/files" className="btn-ghost">
+            ファイル一覧へ
+          </Link>
         </div>
       </header>
 
