@@ -43,7 +43,12 @@ export default async function FilesPage() {
       {/* ヘッダ */}
       <header className="mb-10 flex flex-wrap items-end justify-between gap-4 border-b border-line pb-6">
         <div className="animate-rise-in">
-          <p className="field-label">ShareMon Center</p>
+          <Link
+            href="/"
+            className="field-label inline-block transition-colors hover:text-ink"
+          >
+            ShareMon Center
+          </Link>
           <h1 className="mt-1 font-display text-5xl font-semibold tracking-tight">
             マイファイル
           </h1>

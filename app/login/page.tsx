@@ -1,6 +1,7 @@
 "use client";
 
 import { Suspense, useState, useTransition } from "react";
+import Link from "next/link";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { LoadingOverlay } from "@/components/LoadingOverlay";
@@ -66,7 +67,12 @@ function LoginForm() {
         >
           <header className="space-y-1">
             <div className="flex items-center justify-between">
-              <p className="field-label">ShareMon Center</p>
+              <Link
+                href="/"
+                className="field-label transition-colors hover:text-ink"
+              >
+                ShareMon Center
+              </Link>
               <span className="postmark px-2 py-0.5 text-[10px]">SC</span>
             </div>
             <h1 className="font-display text-4xl font-semibold tracking-tight">
