@@ -57,6 +57,10 @@ services:
     environment:
       NODE_ENV: production
       PORT: 3000
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.sharefile.rule=Host(`sharefile.hijoushoku.com`)"
+      - "traefik.http.services.sharefile.loadbalancer.server.port=3000"
     volumes:
       - uploads_data:/data/uploads
     depends_on:
