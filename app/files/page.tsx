@@ -88,6 +88,7 @@ export default async function FilesPage() {
           <Uploader
             defaultExpiryDays={config.defaultExpiryDays}
             maxExpiryDays={config.maxExpiryDays}
+            maxFileSize={config.maxFileSize}
           />
         </section>
 

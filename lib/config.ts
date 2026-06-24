@@ -7,10 +7,16 @@ function int(name: string, fallback: number): number {
   return Number.isFinite(n) ? n : fallback;
 }
 
+const MAX_FILE_SIZE = 10 * 1024 * 1024 * 1024;
+
 export const config = {
   publicBaseUrl: process.env.PUBLIC_BASE_URL ?? "http://localhost:3000",
   uploadDir: process.env.UPLOAD_DIR ?? "/data/uploads",
-  maxFileSize: int("MAX_FILE_SIZE", 10 * 1024 * 1024 * 1024), // 10GB
+  // 環境変数が誤って大きくても、運用上限の10GiBを超えさせない。
+  maxFileSize: Math.min(
+    int("MAX_FILE_SIZE", MAX_FILE_SIZE),
+    MAX_FILE_SIZE,
+  ),
   defaultExpiryDays: int("DEFAULT_EXPIRY_DAYS", 7),
   maxExpiryDays: int("MAX_EXPIRY_DAYS", 30), // ユーザーが指定できる保管期限の上限（日）
   inviteExpiryHours: int("INVITE_EXPIRY_HOURS", 48), // 招待リンクの有効期限（時間）

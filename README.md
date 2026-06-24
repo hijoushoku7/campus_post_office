@@ -9,7 +9,7 @@
 ## 特徴
 
 - 🔐 アカウント制ログイン（招待制 / メール不要・リンク手渡し）
-- 📦 最大 10GB の **再開可能チャンクアップロード**（tus, 50MB チャンク）
+- 📦 最大 10GiB の **再開可能チャンクアップロード**（tus, 50MB チャンク）
 - 🔗 **ログイン必須の共有リンク**（トークン + 有効期限）
 - 🦠 アップロード時 **ウイルススキャン**（ClamAV, 感染時は自動削除＋アプリ内通知）
 - ⏳ **指定日時で自動削除**（期限切れジョブ）
@@ -28,6 +28,10 @@
 | `cloudflared` | Cloudflare Tunnel |
 
 技術スタック: TypeScript / Next.js 15 / Auth.js v5 (Credentials+JWT) / Prisma / tus / BullMQ / ClamAV
+
+Dockerネットワークは、公開経路用の外部`cloudflared_tunnel_net`と、
+DB・Redis・ClamAV用のCompose内部`backend`に分離しています。
+両方へ接続するのは`app`だけです。
 
 ## セットアップ（自宅サーバー / Docker）
 
@@ -70,7 +74,7 @@ Cloudflare Zero Trust ダッシュボードの Tunnel 設定で、
 公開ホスト名（`PUBLIC_BASE_URL` のドメイン）→ **サービス `http://app:3000`** を割り当てます。
 
 > ⚠️ Cloudflare は **1リクエスト 100MB** のアップロード上限があります。
-> 本アプリは 50MB チャンクで送信するためこの制約下でも 10GB を送れますが、
+> 本アプリは 50MB チャンクで送信するためこの制約下でも大容量ファイルを送れますが、
 > プランによる上限（Free/Pro=100MB）は変更しないでください。
 
 ### 5. アクセス
@@ -99,7 +103,7 @@ npm run worker:dev
 ## 運用メモ
 
 - **ClamAV のメモリ**: シグネチャDB常駐で 2〜3GB 消費します。
-- **スキャン上限**: ClamAV は概ね 4GB を超える部分をスキャンできません（`docker/clamav/clamd.conf` 参照）。
+- **ファイル上限**: 1ファイル10GiB。ClamAVはパス指定スキャンで`MaxFileSize 0`、`MaxScanSize 10G`に設定しています。
 - **ディスク監視**: ローカルFS保存です。`MIN_FREE_SPACE` を下回るとアップロードを拒否します。
 - **バックアップ**: `pg_data`（DB）を定期バックアップ推奨。ファイル本体は短期のため任意。
 - **招待**: `/admin/invitations`（今後実装）で招待リンクを発行し、手動で手渡し。

@@ -104,7 +104,7 @@ openssl rand -base64 32      # AUTH_SECRET 用
 >
 > | 環境変数 | 既定 | 用途 |
 > |---|---|---|
-> | `MAX_FILE_SIZE` | 10GB | 1ファイル上限 |
+> | `MAX_FILE_SIZE` | 10GiB | 1ファイル上限 |
 > | `DEFAULT_EXPIRY_DAYS` / `MAX_EXPIRY_DAYS` | 7 / 30 | 保管期限（既定 / ユーザー指定上限） |
 > | `MIN_FREE_SPACE` | 20GB | これを下回るとアップロード拒否 |
 > | `INVITE_EXPIRY_HOURS` | 48 | 招待リンクの有効期限 |
@@ -241,7 +241,7 @@ docker compose exec app npm run diag:files user@example.com # 特定ユーザー
 | 画面更新でアップロードが消える / 残骸が溜まる | 未完了アップロードは `worker` が `STALE_UPLOAD_HOURS`（既定24h）経過後に自動削除。完了前のリロードは「キャンセル」推奨 |
 | アップロードはできるが「チェック中」のまま | ClamAV のDB準備が未完 or 接続不可。`docker compose logs clamav` を確認。初回は数分待つ |
 | `INFECTED`/「ブロック」になる | ウイルス検出 → 自動削除済み。`/admin` の感染検出履歴を確認 |
-| 4GB超の巨大ファイルが正常でもブロック気味 | ClamAV のスキャン上限（約4GB）。`docker/clamav/clamd.conf` 参照。超過部分は未スキャン扱い |
+| 10GiB前後のファイルが `413` になる | アプリ側の上限。`MAX_FILE_SIZE` は10GiBを超えて設定できない |
 | ログイン済みなのに突然弾かれる | ユーザー無効化（`isActive=false`）後、最長10分で JWT セッションが失効する仕様。意図通りなら正常 |
 | 共有/ファイル一覧が空 + 「orphan」 | DB再作成・seed やり直しで `User.id` が変わったのに古い Cookie が残存。**ログアウト→再ログイン**で解消（`diag:files` で検出可） |
 | サイトに繋がらない | `docker compose logs cloudflared` でトンネル接続を確認。Public Hostname の URL が `app:3000` か確認 |

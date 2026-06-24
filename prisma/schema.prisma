@@ -71,7 +71,7 @@ model File {
   ownerId      String
   owner        User       @relation(fields: [ownerId], references: [id])
   originalName String
-  size         BigInt // 10GB > 2^31 のため BigInt
+  size         BigInt // 10GiB > 2^31 のため BigInt
   mimeType     String?
   storagePath  String     @unique // ランダム名で保存。原名は originalName
   checksum     String? // 任意（SHA-256）

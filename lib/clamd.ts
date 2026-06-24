@@ -10,8 +10,8 @@ export type ScanResult =
  * clamav コンテナはアップロードボリュームを同一パスで共有マウントしている前提。
  * INSTREAM は StreamMaxLength の制約があり大容量に不向きなため使用しない。
  *
- * 注意: ClamAV はファイルサイズ上限 (MaxFileSize/MaxScanSize, 最大約4GB) があるため、
- * これを超えるファイルは clamd.conf の設定値まで・あるいは全くスキャンされない場合がある。
+ * MaxFileSize=0 と MaxScanSize=10G を使い、共有ボリューム上のファイルを
+ * パス指定でスキャンする。受理上限はアプリ側の MAX_FILE_SIZE=10GiB で強制する。
  */
 export function scanPath(absPath: string, timeoutMs = 30 * 60 * 1000): Promise<ScanResult> {
   return new Promise((resolve, reject) => {
