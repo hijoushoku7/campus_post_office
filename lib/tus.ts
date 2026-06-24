@@ -70,6 +70,12 @@ export async function createTusServer(): Promise<Server> {
     path: TUS_PATH,
     datastore,
     maxSize: config.maxFileSize,
+    // Location ヘッダ（アップロード先URL）を相対パスで返す。
+    // 絶対URLにすると、リバースプロキシ(traefik)が X-Forwarded-Proto を
+    // 内部の平文 http に書き換えた場合に `http://` のURLを発行してしまい、
+    // https ページからの再開HEADが mixed content でブラウザにブロックされる。
+    // 相対パスならブラウザがページと同じ scheme(https) で解決するため安全。
+    relativeLocation: true,
     respectForwardedHeaders: true,
     // 完了済みアップロードの実体は File レコードが参照する本体ファイルなので、
     // クライアントの DELETE(キャンセル)で削除されないようにする。
