@@ -9,7 +9,7 @@
 | 領域 | 採用 | 備考 |
 |------|------|------|
 | 言語 | TypeScript | フロント/バック/Worker 共通 |
-| フレームワーク | Next.js 15（App Router） | UI + API（Route Handlers） |
+| フレームワーク | Next.js 15（App Router） | UI + API（API は Hono を catch-all Route Handler に集約 / [api-refactor.md](./api-refactor.md)） |
 | 認証 | Auth.js (NextAuth v5) Credentials + DBセッション | 招待制・ログイン必須 |
 | ORM | Prisma | PostgreSQL |
 | DB | PostgreSQL 16 | メタデータ・監査ログ |
@@ -194,6 +194,12 @@ model AuditLog {
 
 > 認証は Auth.js のセッション（HttpOnly Cookie）。`admin`系はロール検査。
 > すべての書込み系操作で監査ログを記録。レスポンスは JSON（DLはストリーム）。
+>
+> **実装メモ:** API は `app/api/[[...route]]/route.ts` の Hono アプリ（`hono/vercel` の `handle`）に集約。
+> 認証・所有権・バリデーションは `lib/api/middleware.ts` のミドルウェアで合成する。
+> `/api/auth/*`（NextAuth）と `/api/upload*`（tus, server.ts 直結）は集約対象外。
+> 設計・移行方針は [api-refactor.md](./api-refactor.md) を参照。本節のパス表記は当初案であり、
+> 実装の正は `route.ts`（`/api/files`, `/api/invitations`, `/api/s/:token` 等）。
 
 ### 5.1 認証（Auth.js 標準）
 - `POST /api/auth/callback/credentials` — ログイン
