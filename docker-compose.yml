@@ -14,7 +14,7 @@ services:
       timeout: 5s
       retries: 10
     networks:
-      - tunnel_net
+      - backend
 
   redis:
     image: redis:7-alpine
@@ -28,7 +28,7 @@ services:
       timeout: 3s
       retries: 10
     networks:
-      - tunnel_net
+      - backend
 
   clamav:
     image: clamav/clamav:latest
@@ -46,7 +46,7 @@ services:
       # 初回はシグネチャDLに数分かかる
       start_period: 300s
     networks:
-      - tunnel_net
+      - backend
 
   app:
     build:
@@ -61,6 +61,7 @@ services:
       - "traefik.enable=true"
       - "traefik.http.routers.sharefile.rule=Host(`sharefile.hijoushoku.com`)"
       - "traefik.http.services.sharefile.loadbalancer.server.port=3000"
+      - "traefik.docker.network=cloudflared_tunnel_net"
     volumes:
       - uploads_data:/data/uploads
     depends_on:
@@ -69,7 +70,8 @@ services:
       redis:
         condition: service_healthy
     networks:
-      - tunnel_net
+      - cloudflare_tunnel_net
+      - backend
   worker:
     build:
       context: .
@@ -89,11 +91,13 @@ services:
       clamav:
         condition: service_started
     networks:
-      - tunnel_net
+      - backend
 networks:
-  tunnel_net:
+  cloudflare_tunnel_net:
     external: true
     name: cloudflared_tunnel_net
+  backend:
+    driver: bridge
 volumes:
   pg_data:
   redis_data:

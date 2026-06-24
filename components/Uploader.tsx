@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import * as tus from "tus-js-client";
 import { FILES_CHANGED_EVENT } from "./FileList";
+import { formatBytes } from "@/lib/format";
 
 // Cloudflare の 1リクエスト 100MB 制約に収まるよう 50MB チャンクで送信
 const CHUNK_SIZE = 50 * 1024 * 1024;
@@ -22,9 +23,11 @@ const EXPIRY_OPTIONS = [1, 3, 7, 14, 30];
 export function Uploader({
   defaultExpiryDays = 7,
   maxExpiryDays = 30,
+  maxFileSize = 10 * 1024 * 1024 * 1024,
 }: {
   defaultExpiryDays?: number;
   maxExpiryDays?: number;
+  maxFileSize?: number;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [items, setItems] = useState<UploadItem[]>([]);
@@ -68,6 +71,20 @@ export function Uploader({
     (file: File) => {
       // items は追記のみなので、採番カウンタが配列 index と一致する
       const index = nextIndexRef.current++;
+      if (file.size > maxFileSize) {
+        setItems((prev) => [
+          ...prev,
+          {
+            id: index,
+            name: file.name,
+            progress: 0,
+            status: "error",
+            error: `ファイルサイズ上限（${formatBytes(maxFileSize)}）を超えています`,
+          },
+        ]);
+        return;
+      }
+
       setItems((prev) => [
         ...prev,
         { id: index, name: file.name, progress: 0, status: "uploading" },
@@ -120,7 +137,7 @@ export function Uploader({
         upload.start();
       });
     },
-    [],
+    [maxFileSize],
   );
 
   const onSelect = useCallback(
@@ -164,7 +181,7 @@ export function Uploader({
           </div>
           <p className="font-display text-lg">ここにファイルをドロップ</p>
           <p className="mt-1 font-mono text-[11px] text-muted">
-            またはクリックして選択 · 最大10GB · 中断しても再開できます
+            またはクリックして選択 · 最大{formatBytes(maxFileSize)} · 中断しても再開できます
           </p>
           <input
             ref={inputRef}

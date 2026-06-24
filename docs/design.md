@@ -39,8 +39,10 @@
 ```
 
 - リバースプロキシは不要（cloudflared が `app:3000` に直接ルーティング）。
+- `app`だけを外部`cloudflared_tunnel_net`と内部`backend`の両方へ接続する。
+  `worker`、`postgres`、`redis`、`clamav`は`backend`のみに置き、公開経路から分離する。
 - `clamav` はアップロードボリュームを **読み取り専用** でマウントし、`SCAN <path>` で検査
-  （`INSTREAM` は `StreamMaxLength`（既定100MB）の制約があり10GBに不向きなため採用しない）。
+  （`INSTREAM` は `StreamMaxLength` の制約があり大容量ファイルに不向きなため採用しない）。
 
 ## 2. ロールと権限
 
@@ -143,7 +145,7 @@ model File {
   ownerId      String
   owner        User       @relation(fields: [ownerId], references: [id])
   originalName String
-  size         BigInt                       // 10GB > 2^31 のため BigInt
+  size         BigInt                       // 10GiB > 2^31 のため BigInt
   mimeType     String?
   storagePath  String     @unique            // ランダム名で保存（原名はDB）
   checksum     String?                       // 任意（SHA-256）
@@ -223,7 +225,7 @@ model AuditLog {
 - エンドポイント: `/api/upload`（tus: `POST`(create) / `HEAD`(offset) / `PATCH`(append) / `DELETE`）
 - `onUploadCreate` フック:
   - セッション検証（未ログインは拒否）
-  - `Upload-Length` ≤ 10GB を検証
+  - `Upload-Length` ≤ 10GiB を検証
   - **ディスク空き容量チェック**（不足なら拒否）
   - `File(status=UPLOADING)` を仮作成
 - `onUploadFinish` フック:
@@ -294,7 +296,7 @@ Worker(scan)
 - **パスワード**: Argon2id（`argon2` パッケージ）。
 - **トークン**: `crypto.randomBytes(32)` を base64url（招待/共有）。当て推量・列挙不可。
 - **保存名**: ランダム（cuid/uuid）でFS保存、原名はDBのみ。**パストラバーサル防止**（保存パスを固定ディレクトリ配下に強制）。
-- **サイズ/容量**: tus作成時に10GB上限＋ディスク空き検査。
+- **サイズ/容量**: tus作成時に10GiB上限＋ディスク空き検査。
 - **認可**: ファイル/共有の所有者・admin チェックをサーバ側で必ず実施。
 - **共有の二段防御**: 共有リンクは「ログイン必須」。部外者はリンク入手でもDL不可。
 - **レート制限**: ログイン試行（Redis カウンタ）。
@@ -346,7 +348,7 @@ campus_post_office/
 | `REDIS_URL` | BullMQ |
 | `CLAMAV_HOST` / `CLAMAV_PORT` | clamd 接続 |
 | `UPLOAD_DIR` | ファイル保存先（共有ボリューム） |
-| `MAX_FILE_SIZE` | 既定 10GB |
+| `MAX_FILE_SIZE` | 既定10GiB（10GiBでハードクランプ） |
 | `DEFAULT_EXPIRY_DAYS` | 既定 7 |
 | `PUBLIC_BASE_URL` | 共有/招待URL生成用（CFのドメイン） |
 | `TUNNEL_TOKEN` | cloudflared 認証トークン |
@@ -354,5 +356,5 @@ campus_post_office/
 ## 10. サーバ要件メモ
 
 - **ClamAV はメモリを2〜3GB程度消費**（シグネチャDB常駐）。自宅サーバーのRAMを確認。
-- ディスクは「同時保管ピーク容量＋余裕」を確保（10GB×想定本数）。
+- ディスクは「同時保管ピーク容量＋余裕」を確保（10GiB×想定本数）。
 - Cloudflare Tunnel 利用には **Cloudflare 管理下の独自ドメイン** が必要（未決事項）。

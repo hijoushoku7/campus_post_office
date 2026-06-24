@@ -56,4 +56,4 @@ Because JWTs outlive the DB user (e.g. after a reseed the cookie is still signed
 Single image [docker/Dockerfile.app](docker/Dockerfile.app) is used by both `app` (`server.ts`) and `worker` (`command: npm run worker`). `app`, `worker`, and `clamav` all mount the **same `uploads_data` volume at `/data/uploads`** — ClamAV scans by path, so the upload directory must be identical across containers. `cloudflared` fronts `app:3000`. Note `app` publishes no host port; in production it's only reachable through the tunnel.
 
 ### Config
-All tunables go through [lib/config.ts](lib/config.ts) (typed env wrapper): `maxFileSize` (10GB), `minFreeSpace` (20GB — uploads rejected below this), `defaultExpiryDays`/`maxExpiryDays`, ClamAV/Redis endpoints. Prefer adding env-backed values here over reading `process.env` directly.
+All tunables go through [lib/config.ts](lib/config.ts) (typed env wrapper): `maxFileSize` (10GiB hard maximum), `minFreeSpace` (20GB — uploads rejected below this), `defaultExpiryDays`/`maxExpiryDays`, ClamAV/Redis endpoints. Prefer adding env-backed values here over reading `process.env` directly.

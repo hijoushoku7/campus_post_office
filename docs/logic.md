@@ -18,7 +18,7 @@ Node の `createServer` で **Next.js と tus サーバを1プロセスに同居
 - `/api/upload`（`TUS_PATH`）で始まるリクエスト → **tus ハンドラへ直接ルーティング**
 - それ以外 → Next.js のリクエストハンドラ（`handle(req, res)`）
 - `server.requestTimeout = 0` / `server.headersTimeout = 0` で**タイムアウトを無効化**
-  （最大10GB・長時間のアップロード/ダウンロードを途中で切らないため）
+  （大容量・長時間のアップロード/ダウンロードを途中で切らないため）
 
 > ⚠️ このため、起動は必ず `server.ts` を通す `npm run dev` / `npm run start` を使います。
 > 素の `next dev` だと `/api/upload` が 404 になりアップロードが壊れます。
@@ -86,7 +86,7 @@ Edge ランタイムでは Prisma/argon2 が動かないため、設定を分離
 ### `onUploadCreate`（作成時バリデーション）
 
 1. DB でユーザー実在＋`isActive` を再確認（FK 違反防止）→ 不正なら **401**
-2. `size > 0`、`size <= maxFileSize`（既定10GB）→ 違反で **400 / 413**
+2. `size > 0`、`size <= maxFileSize`（既定10GiB）→ 違反で **400 / 413**
 3. `hasFreeSpaceFor(size)`（`空き - size >= minFreeSpace`、既定20GB）→ 不足で **507**
 4. 保管期限を `resolveExpiryDays()` で **1..maxExpiryDays（既定30）にクランプ**
    （メタデータは信用できないためサーバ側で丸める）
@@ -168,8 +168,8 @@ BullMQ。Queue とは別の専用 Redis 接続（`maxRetriesPerRequest: null`）
    - 記録時は signature と originalName を付与（`FILE_INFECTED`）
 - ジョブ: `attempts: 3`、指数バックオフ（5s 起点）
 
-> ClamAV には `MaxFileSize/MaxScanSize`（約4GB上限）があり、
-> 超過分は設定値まで・あるいは未スキャン扱いになる場合がある（[lib/clamd.ts](../lib/clamd.ts)）。
+> ClamAVは共有ボリュームへのパス指定スキャンを使い、`MaxFileSize=0`、
+> `MaxScanSize=10G`、`MaxScanTime=30分`に設定する。入力上限はアプリ側で10GiBに強制する。
 
 ### cleanup ワーカー（**10分ごと**の繰り返しジョブ）
 
@@ -272,7 +272,7 @@ BullMQ。Queue とは別の専用 Redis 接続（`maxRetriesPerRequest: null`）
 |---|---|---|---|
 | `publicBaseUrl` | `PUBLIC_BASE_URL` | `http://localhost:3000` | 共有/招待リンクのベースURL |
 | `uploadDir` | `UPLOAD_DIR` | `/data/uploads` | 本体ファイル保存先 |
-| `maxFileSize` | `MAX_FILE_SIZE` | 10GB | 1ファイル上限 |
+| `maxFileSize` | `MAX_FILE_SIZE` | 10GiB | 1ファイル上限（10GiBでハードクランプ） |
 | `defaultExpiryDays` | `DEFAULT_EXPIRY_DAYS` | 7 | 既定の保管期限（日） |
 | `maxExpiryDays` | `MAX_EXPIRY_DAYS` | 30 | ユーザー指定の上限（日） |
 | `inviteExpiryHours` | `INVITE_EXPIRY_HOURS` | 48 | 招待リンク有効期限（時間） |

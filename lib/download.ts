@@ -5,7 +5,7 @@ import { resolveStoragePath } from "./storage";
 
 /**
  * ローカルFS上のファイルを Range 対応でストリーミング配信する Response を生成。
- * 大容量(10GB)を低メモリで配信し、再開DLにも対応する。
+ * 大容量ファイルを低メモリで配信し、再開DLにも対応する。
  */
 export async function buildDownloadResponse(
   storageKey: string,
